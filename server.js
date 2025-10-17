@@ -12,144 +12,198 @@ const io = socketIo(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+// Static files serve करने के लिए
+app.use(express.static(path.join(__dirname)));
 
-// Serve static files
-app.use(express.static('public'));
+// Root route for serving the main HTML file
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'maths-nerds.html'));
+});
 
-// Game rooms storage
+// Game rooms को manage करने के लिए
 const rooms = {};
-const players = {};
+const playerNames = {};
 
-// Socket.io connection handling
 io.on('connection', (socket) => {
-    console.log('Player connected:', socket.id);
+    console.log('New user connected:', socket.id);
 
-    // Store player info
-    players[socket.id] = {
-        id: socket.id,
-        name: '',
-        room: null,
-        ready: false
-    };
+    // Room create करने के लिए
+    socket.on('createRoom', (data) => {
+        const roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const playerName = data.playerName || 'Player1';
+        
+        socket.join(roomCode);
+        rooms[roomCode] = { 
+            players: [{ id: socket.id, name: playerName }],
+            gameState: null,
+            isGameStarted: false
+        };
+        playerNames[socket.id] = playerName;
+        
+        socket.emit('roomCreated', { roomCode, playerName });
+        console.log(`Room ${roomCode} created by ${playerName} (${socket.id})`);
+    });
 
-    // Handle player joining a room
+    // Room join करने के लिए
     socket.on('joinRoom', (data) => {
         const { roomCode, playerName } = data;
-
-        players[socket.id].name = playerName;
-        players[socket.id].room = roomCode;
-
-        // Create room if it doesn't exist
-        if (!rooms[roomCode]) {
-            rooms[roomCode] = {
-                players: [],
-                gameState: null,
-                currentTurn: 0
-            };
-        }
-
-        // Add player to room
-        if (rooms[roomCode].players.length < 2) {
-            rooms[roomCode].players.push(socket.id);
+        
+        if (rooms[roomCode] && rooms[roomCode].players.length < 2) {
             socket.join(roomCode);
-
-            // Notify room about new player
-            io.to(roomCode).emit('playerJoined', {
-                playerId: socket.id,
-                playerName: playerName,
-                totalPlayers: rooms[roomCode].players.length
+            rooms[roomCode].players.push({ id: socket.id, name: playerName || 'Player2' });
+            playerNames[socket.id] = playerName || 'Player2';
+            
+            socket.emit('joinedRoom', { roomCode, playerName: playerName || 'Player2' });
+            
+            // दूसरे player को notify करें
+            socket.to(roomCode).emit('opponentJoined', { 
+                playerId: socket.id, 
+                playerName: playerName || 'Player2' 
             });
+            
+            console.log(`${playerName || 'Player2'} joined room: ${roomCode}`);
 
-            // Start game if room is full
+            // अगर room full हो गया तो game ready signal भेजें
             if (rooms[roomCode].players.length === 2) {
-                setTimeout(() => {
-                    io.to(roomCode).emit('gameReady', {
-                        players: rooms[roomCode].players.map(id => ({
-                            id: id,
-                            name: players[id].name
-                        }))
-                    });
-                }, 1000);
+                const playersData = rooms[roomCode].players.map((player, index) => ({
+                    id: player.id,
+                    name: player.name,
+                    playerNumber: index === 0 ? 'player1' : 'player2'
+                }));
+                
+                io.to(roomCode).emit('gameReady', { players: playersData });
+                console.log(`Game ready in room ${roomCode}`);
             }
+        } else if (!rooms[roomCode]) {
+            socket.emit('error', { message: 'Room does not exist' });
         } else {
-            socket.emit('roomFull');
+            socket.emit('error', { message: 'Room is full' });
         }
     });
 
-    // Handle game start
-    socket.on('startGame', (roomCode) => {
-        if (rooms[roomCode] && rooms[roomCode].players.includes(socket.id)) {
-            // Initialize game state
+    // Game start करने के लिए
+    socket.on('startGame', (data) => {
+        const { roomCode, branches } = data;
+        
+        if (rooms[roomCode] && rooms[roomCode].players.length === 2) {
+            rooms[roomCode].isGameStarted = true;
             rooms[roomCode].gameState = {
-                started: true,
-                currentTurn: 0,
-                playerStates: {}
+                currentPlayer: 'player1',
+                branches: branches,
+                gamePhase: 'draw'
             };
-
-            // Notify all players in room
+            
             io.to(roomCode).emit('gameStarted', {
-                currentPlayer: rooms[roomCode].players[0]
+                players: rooms[roomCode].players,
+                gameState: rooms[roomCode].gameState
             });
+            
+            console.log(`Game started in room ${roomCode}`);
         }
     });
 
-    // Handle card play
-    socket.on('playCard', (data) => {
-        const { roomCode, cardData } = data;
-
-        if (rooms[roomCode]) {
-            // Switch turn
-            rooms[roomCode].currentTurn = 1 - rooms[roomCode].currentTurn;
-
-            // Broadcast card play to all players in room
-            socket.to(roomCode).emit('opponentPlayedCard', {
-                playerId: socket.id,
-                cardData: cardData,
-                nextPlayer: rooms[roomCode].players[rooms[roomCode].currentTurn]
+    // Game actions handle करने के लिए
+    socket.on('gameAction', (data) => {
+        const { roomCode, action, playerId } = data;
+        
+        if (rooms[roomCode] && rooms[roomCode].isGameStarted) {
+            // Action को opponent को forward करें
+            socket.to(roomCode).emit('opponentAction', {
+                action: action,
+                playerId: playerId
             });
+            
+            // Game state update करें if needed
+            if (rooms[roomCode].gameState && action.type === 'TURN_END') {
+                rooms[roomCode].gameState.currentPlayer = 
+                    rooms[roomCode].gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
+                
+                io.to(roomCode).emit('turnChanged', {
+                    currentPlayer: rooms[roomCode].gameState.currentPlayer
+                });
+            }
+            
+            console.log(`Action in room ${roomCode}:`, action.type);
         }
     });
 
-    // Handle game update
-    socket.on('gameUpdate', (data) => {
+    // Game state sync करने के लिए
+    socket.on('syncGameState', (data) => {
         const { roomCode, gameState } = data;
-
+        
         if (rooms[roomCode]) {
-            rooms[roomCode].gameState = { ...rooms[roomCode].gameState, ...gameState };
+            rooms[roomCode].gameState = gameState;
             socket.to(roomCode).emit('gameStateUpdate', gameState);
         }
     });
 
-    // Handle disconnect
+    // Chat messages के लिए
+    socket.on('chatMessage', (data) => {
+        const { roomCode, message, playerName } = data;
+        
+        if (rooms[roomCode]) {
+            io.to(roomCode).emit('chatMessage', {
+                message: message,
+                playerName: playerName,
+                timestamp: Date.now()
+            });
+        }
+    });
+
+    // Player disconnect होने पर
     socket.on('disconnect', () => {
-        console.log('Player disconnected:', socket.id);
-
-        const player = players[socket.id];
-        if (player && player.room) {
-            const roomCode = player.room;
-
-            if (rooms[roomCode]) {
-                // Remove player from room
-                rooms[roomCode].players = rooms[roomCode].players.filter(id => id !== socket.id);
-
-                // Notify other players
-                socket.to(roomCode).emit('playerDisconnected', {
-                    playerId: socket.id,
-                    playerName: player.name
-                });
-
-                // Clean up empty rooms
+        console.log('User disconnected:', socket.id);
+        
+        // सभी rooms check करें और player को remove करें
+        for (let roomCode in rooms) {
+            const playerIndex = rooms[roomCode].players.findIndex(p => p.id === socket.id);
+            
+            if (playerIndex !== -1) {
+                const playerName = rooms[roomCode].players[playerIndex].name;
+                rooms[roomCode].players.splice(playerIndex, 1);
+                
+                // अगर room empty हो गया तो delete करें
                 if (rooms[roomCode].players.length === 0) {
                     delete rooms[roomCode];
+                    console.log(`Room ${roomCode} deleted (empty)`);
+                } else {
+                    // बाकी players को notify करें
+                    socket.to(roomCode).emit('opponentDisconnected', {
+                        playerName: playerName
+                    });
+                    console.log(`${playerName} left room ${roomCode}`);
                 }
+                break;
             }
         }
+        
+        delete playerNames[socket.id];
+    });
 
-        delete players[socket.id];
+    // Room की information के लिए
+    socket.on('getRoomInfo', (roomCode) => {
+        if (rooms[roomCode]) {
+            socket.emit('roomInfo', {
+                players: rooms[roomCode].players,
+                isGameStarted: rooms[roomCode].isGameStarted
+            });
+        } else {
+            socket.emit('error', { message: 'Room not found' });
+        }
     });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        rooms: Object.keys(rooms).length,
+        timestamp: new Date().toISOString()
+    });
+});
+
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🎮 Maths Nerds Multiplayer Server running on port ${PORT}`);
+    console.log(`🌐 Server ready to accept connections`);
 });
