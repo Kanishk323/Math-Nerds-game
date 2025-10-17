@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Card Battle Game - Multiplayer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Socket.IO for multiplayer -->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #a8dadc 0%, #457b9d 100%);
+            text-align: center;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            box-sizing: border-box;
+            margin-top: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            color: #2b6cb0;
+            font-size: 2.5em;
+            margin-bottom: 25px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-area-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 2px solid #4c9fc2;
+            border-radius: 12px;
+            padding: 15px;
+            background-color: #f0f8ff;
+        }
+
+        .player-area {
+            background-color: #e6f3ff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            background-color: #ffffff;
+            border: 2px solid #4c9fc2;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            width: 120px;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-name {
+            font-weight: bold;
+            color: #2b6cb0;
+            margin-bottom: 5px;
+        }
+
+        .card-effect {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .card-cost {
+            background-color: #ff6b6b;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .game-button {
+            background-color: #4c9fc2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+
+        .game-button:hover {
+            background-color: #357a96;
+        }
+
+        .multiplayer-button {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+
+        .multiplayer-button:hover {
+            background-color: #7c3aed;
+        }
+
+        .phase-button {
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .phase-button:hover {
+            background-color: #d68910;
+        }
+
+        .phase-button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .deck-pile, .discard-pile {
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 80px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .deck-pile:hover, .discard-pile:hover {
+            background-color: #34495e;
+        }
+
+        .branch-info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .branch-info h4 {
+            color: #2b6cb0;
+            margin-bottom: 10px;
+        }
+
+        .branch-info ul {
+            text-align: left;
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .branch-info li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        select {
+            padding: 10px;
+            border: 2px solid #4c9fc2;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: white;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border: 2px solid #4c9fc2;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: white;
+            text-align: center;
+        }
+
+        .error-message {
+            background-color: #ff6b6b;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px;
+            display: none;
+        }
+
+        .success-message {
+            background-color: #51c878;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px;
+            display: none;
+        }
+
+        .room-status {
+            background-color: #e8f4fd;
+            border: 2px solid #4c9fc2;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 15px;
+                margin-top: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                width: 100px;
+                font-size: 10px;
+            }
+            
+            .player-area-container {
+                padding: 10px;
+            }
+        }
+
+        /* Multiplayer specific styles */
+        .multiplayer-menu {
+            display: none;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .multiplayer-menu h2 {
+            color: #8b5cf6;
+            margin-bottom: 20px;
+        }
+
+        .room-input {
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        .turn-indicator {
+            background-color: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .turn-indicator.opponent-turn {
+            background-color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🧮 Mathematical Card Battle Game 🎲</h1>
+        
+        <!-- Main Menu -->
+        <div id="main-menu">
+            <p style="font-size: 18px; margin-bottom: 20px;">Apne opponent ke Intellectual Power (IP) ko 0 tak kam karo, usse pehle ki woh aapka kam kare. Cards play karke IP ko affect karte hain.</p>
+            
+            <!-- Game Mode Selection -->
+            <div id="game-mode-select" style="display: block;">
+                <label for="game-mode">Game Mode Chuno:</label>
+                <select id="game-mode">
+                    <option value="vsai">AI ke saath khelo</option>
+                    <option value="vslocalplayer">Local Player ke saath khelo</option>
+                </select>
+                
+                <!-- Multiplayer Button -->
+                <div style="margin: 20px 0;">
+                    <button id="multiplayer-mode-btn" class="multiplayer-button">
+                        🌐 Online Multiplayer
+                    </button>
+                </div>
+            </div>
+            
+            <!-- AI Difficulty Selection -->
+            <div id="ai-difficulty-select" style="display: block;">
+                <label for="ai-difficulty">AI ki Difficulty chuno:</label>
+                <select id="ai-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            
+            <!-- Multiplayer Menu -->
+            <div id="multiplayer-menu" class="multiplayer-menu">
+                <h2>🎮 Multiplayer Mode</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="player-name-input" placeholder="Apna naam enter karo" 
+                           style="width: 250px;" maxlength="20">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <button id="create-room-btn" class="game-button" style="background-color: #10b981;">
+                        🏠 Room Banao
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <span style="font-size: 18px; font-weight: bold; color: #666;">या</span>
+                </div>
+                
+                <div class="room-input">
+                    <input type="text" id="room-code-input" placeholder="Room Code" 
+                           style="width: 150px; text-transform: uppercase;" maxlength="6">
+                    <button id="join-room-btn" class="game-button" style="background-color: #3b82f6;">
+                        🚪 Join Karo
+                    </button>
+                </div>
+                
+                <!-- Room Status -->
+                <div id="room-status" class="room-status" style="display: none;">
+                    <p id="room-code-display" style="font-size: 24px; font-weight: bold; color: #10b981;"></p>
+                    <p id="waiting-message" style="font-size: 16px; color: #666;"></p>
+                    <p id="opponent-info" style="font-size: 16px; color: #3b82f6;"></p>
+                </div>
+                
+                <!-- Error/Success Messages -->
+                <div id="error-message" class="error-message"></div>
+                <div id="success-message" class="success-message"></div>
+                
+                <!-- Back Button -->
+                <button id="back-to-menu-btn" class="game-button" style="background-color: #6b7280; margin-top: 15px;">
+                    🔙 Menu par wapas jao
+                </button>
+            </div>
+            
+            <!-- Branch Selection -->
+            <div id="branch-select">
+                <label for="branch-player1">Apni Math Branch chuno (Player 1):</label>
+                <select id="branch-player1" onchange="displayBranchEffects('player1')">
+                    <option value="Algebra">Algebra</option>
+                    <option value="Geometry">Geometry</option>
+                    <option value="Calculus">Calculus</option>
+                    <option value="Number Theory">Number Theory</option>
+                    <option value="Probability">Probability</option>
+                    <option value="Complex Analysis">Complex Analysis</option>
+                    <option value="Trigonometry">Trigonometry</option>
+                </select>
+                <div id="branch-effect-display-player1" class="branch-info w-full max-w-sm" style="display: none;"></div>
+
+                <div id="player2-branch-selection-container">
+                    <label for="branch-player2">Player 2 ki Math Branch chuno:</label>
+                    <select id="branch-player2" onchange="displayBranchEffects('player2')">
+                        <option value="Algebra">Algebra</option>
+                        <option value="Geometry">Geometry</option>
+                        <option value="Calculus">Calculus</option>
+                        <option value="Number Theory">Number Theory</option>
+                        <option value="Probability">Probability</option>
+                        <option value="Complex Analysis">Complex Analysis</option>
+                        <option value="Trigonometry">Trigonometry</option>
+                    </select>
+                    <div id="branch-effect-display-player2" class="branch-info w-full max-w-sm" style="display: none;"></div>
+                </div>
+
+                <button class="game-button" onclick="startGame()">Game Start karo</button>
+            </div>
+        </div>
+
+        <!-- Turn Indicator (for multiplayer) -->
+        <div id="turn-indicator" class="turn-indicator" style="display: none;">
+            Aapka Turn
+        </div>
+
+        <!-- Game UI -->
+        <div id="game-ui" style="display: none;">
+            <div class="deck-pile" id="deck-pile">
+                Deck
+                <span id="deck-count">0</span>
+            </div>
+            <div class="discard-pile" id="discard-pile">
+                Discard
+                <span id="discard-count">0</span>
+            </div>
+
+            <div class="player-area-container">
+                <div class="player-area">
+                    <h3 id="player1-name-display">Player 1 IP: <span id="player1-ip">100</span></h3>
+                    <p>Tokens: <span id="player1-tokens">15</span> | Branch: <span id="player1-branch">Algebra</span></p>
+                    <div id="player1-hand" class="hand"></div>
+                </div>
+
+                <div class="player-area">
+                    <h3 id="player2-name-display">Player 2 IP: <span id="player2-ip">100</span></h3>
+                    <p>Tokens: <span id="player2-tokens">15</span> | Branch: <span id="player2-branch">Algebra</span></p>
+                    <div id="player2-hand" class="hand"></div>
+                </div>
+            </div>
+
+            <div id="phase-controls">
+                <p>Current Phase: <span id="current-phase">Draw</span></p>
+                <p>Current Player: <span id="current-player-display">Player 1</span></p>
+                <button id="draw-phase-btn" class="phase-button" onclick="startDrawPhase()">Draw Phase</button>
+                <button id="play-phase-btn" class="phase-button" onclick="startPlayPhase()">Play Phase</button>
+                <button id="battle-phase-btn" class="phase-button" onclick="startBattlePhase()">Battle Phase</button>
+                <button id="heal-phase-btn" class="phase-button" onclick="startHealPhase()">Heal Phase</button>
+                <button id="end-turn-btn" class="phase-button" onclick="endTurn()">End Turn</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Multiplayer variables
+        let socket = null;
+        let roomCode = null;
+        let myPlayerId = null;
+        let myPlayerNumber = null; // 'player1' or 'player2'
+        let opponentName = null;
+        let isMultiplayerMode = false;
+        let isMyTurn = true;
+
+        // Initialize socket only if we're not in file:// protocol
+        if (window.location.protocol !== 'file:') {
+            socket = io();
+        }
+
+        // Game Variables
+        let currentPlayer = 'player1'; // player1 or player2
+        let isGameOver = false;
+        let gameMode = 'vsai'; // vsai, vslocalplayer, vsmultiplayer
+        let aiDifficulty = 'medium';
+
+        // Deck and Hand Management
+        let deck = []; // Shared deck
+        let discardPile = []; // Shared discard pile
+        const MAXHANDSIZE = 10;
+        const MAXTOKENS = 15;
+        const CARDSTODRAWPERTURN = 5;
+        const AIMAXHANDSIZE = 10;
+        const AICARDSTODRAWPERTURN = 5;
+
+        // Game Phases
+        let currentPhase = 'draw'; // draw, play, battle, heal
+        let playedCardsThisTurn = []; // Cards played by current player in current Play Phase
+
+        // Player Objects
+        let player1 = {
+            ip: 100,
+            tokens: 15,
+            hand: [],
+            selectedBranch: 'Algebra',
+            bonuses: { damage: 0, heal: 0, draw: 0 }
+        };
+
+        let player2 = {
+            ip: 100,
+            tokens: 15,
+            hand: [],
+            selectedBranch: 'Algebra',
+            bonuses: { damage: 0, heal: 0, draw: 0 }
+        };
+
+        // Card definitions with mathematical problems
+        const cardDefinitions = {
+            'Algebra': [
+                {
+                    name: 'Linear Equation',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (5 + player.bonuses.damage); },
+                    description: 'Solve x + 3 = 7. Answer: x = 4. Deal 5 damage.'
+                },
+                {
+                    name: 'Quadratic Formula',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: 'x² - 5x + 6 = 0. Roots: x = 2, 3. Deal 8 damage.'
+                },
+                {
+                    name: 'Factorization',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (6 + player.bonuses.damage); },
+                    description: 'Factor x² - 9 = (x-3)(x+3). Deal 6 damage.'
+                },
+                {
+                    name: 'System of Equations',
+                    cost: 5,
+                    effect: (player, opponent) => { opponent.ip -= (10 + player.bonuses.damage); },
+                    description: '2x + y = 5, x - y = 1. Solution: (2,1). Deal 10 damage.'
+                },
+                {
+                    name: 'Polynomial',
+                    cost: 3,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (7 + player.bonuses.damage);
+                        player.tokens += 1;
+                    },
+                    description: 'Expand (x+2)². Deal 7 damage, gain 1 token.'
+                }
+            ],
+            'Geometry': [
+                {
+                    name: 'Pythagorean Theorem',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (6 + player.bonuses.damage); },
+                    description: 'a² + b² = c². For 3,4,5 triangle. Deal 6 damage.'
+                },
+                {
+                    name: 'Area of Circle',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (4 + player.bonuses.damage); },
+                    description: 'πr² where r=3. Area ≈ 28.27. Deal 4 damage.'
+                },
+                {
+                    name: 'Triangle Properties',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: 'Sum of angles = 180°. Deal 8 damage.'
+                },
+                {
+                    name: 'Volume of Sphere',
+                    cost: 5,
+                    effect: (player, opponent) => { opponent.ip -= (9 + player.bonuses.damage); },
+                    description: '(4/3)πr³. For r=2, V≈33.51. Deal 9 damage.'
+                },
+                {
+                    name: 'Coordinate Geometry',
+                    cost: 3,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (5 + player.bonuses.damage);
+                        drawCards(player, 1);
+                    },
+                    description: 'Distance formula √[(x₂-x₁)²+(y₂-y₁)²]. Deal 5 damage, draw 1 card.'
+                }
+            ],
+            'Calculus': [
+                {
+                    name: 'Basic Derivative',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (7 + player.bonuses.damage); },
+                    description: 'd/dx(x²) = 2x. Deal 7 damage.'
+                },
+                {
+                    name: 'Chain Rule',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (9 + player.bonuses.damage); },
+                    description: 'd/dx[f(g(x))] = f\'(g(x))·g\'(x). Deal 9 damage.'
+                },
+                {
+                    name: 'Integration',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: '∫x dx = x²/2 + C. Deal 8 damage.'
+                },
+                {
+                    name: 'Limits',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (5 + player.bonuses.damage); },
+                    description: 'lim(x→0) sin(x)/x = 1. Deal 5 damage.'
+                },
+                {
+                    name: 'Optimization',
+                    cost: 5,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (11 + player.bonuses.damage);
+                        player.ip += (3 + player.bonuses.heal);
+                    },
+                    description: 'Find max/min using derivatives. Deal 11 damage, heal 3 IP.'
+                }
+            ],
+            'Number Theory': [
+                {
+                    name: 'Prime Factorization',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (4 + player.bonuses.damage); },
+                    description: '24 = 2³ × 3. Deal 4 damage.'
+                },
+                {
+                    name: 'GCD/LCM',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (6 + player.bonuses.damage); },
+                    description: 'GCD(12,18)=6, LCM(12,18)=36. Deal 6 damage.'
+                },
+                {
+                    name: 'Modular Arithmetic',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: '17 ≡ 2 (mod 15). Deal 8 damage.'
+                },
+                {
+                    name: 'Fibonacci Sequence',
+                    cost: 3,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (5 + player.bonuses.damage);
+                        player.tokens += 2;
+                    },
+                    description: '1,1,2,3,5,8,13... Deal 5 damage, gain 2 tokens.'
+                },
+                {
+                    name: 'Diophantine Equation',
+                    cost: 5,
+                    effect: (player, opponent) => { opponent.ip -= (10 + player.bonuses.damage); },
+                    description: '3x + 5y = 1. Solution exists. Deal 10 damage.'
+                }
+            ],
+            'Probability': [
+                {
+                    name: 'Basic Probability',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (4 + player.bonuses.damage); },
+                    description: 'P(heads) = 1/2 for fair coin. Deal 4 damage.'
+                },
+                {
+                    name: 'Conditional Probability',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (7 + player.bonuses.damage); },
+                    description: 'P(A|B) = P(A∩B)/P(B). Deal 7 damage.'
+                },
+                {
+                    name: 'Binomial Distribution',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: 'C(n,k) × p^k × (1-p)^(n-k). Deal 8 damage.'
+                },
+                {
+                    name: 'Expected Value',
+                    cost: 3,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (6 + player.bonuses.damage);
+                        player.ip += (2 + player.bonuses.heal);
+                    },
+                    description: 'E(X) = Σ x·P(x). Deal 6 damage, heal 2 IP.'
+                },
+                {
+                    name: 'Normal Distribution',
+                    cost: 5,
+                    effect: (player, opponent) => { opponent.ip -= (9 + player.bonuses.damage); },
+                    description: 'Bell curve, μ=0, σ=1. Deal 9 damage.'
+                }
+            ],
+            'Complex Analysis': [
+                {
+                    name: 'Complex Numbers',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (6 + player.bonuses.damage); },
+                    description: 'i² = -1, |a+bi| = √(a²+b²). Deal 6 damage.'
+                },
+                {
+                    name: 'Euler\'s Formula',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: 'e^(iπ) + 1 = 0. Deal 8 damage.'
+                },
+                {
+                    name: 'Complex Roots',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (7 + player.bonuses.damage); },
+                    description: 'Roots of unity: e^(2πik/n). Deal 7 damage.'
+                },
+                {
+                    name: 'Cauchy-Riemann',
+                    cost: 5,
+                    effect: (player, opponent) => { opponent.ip -= (10 + player.bonuses.damage); },
+                    description: '∂u/∂x = ∂v/∂y, ∂u/∂y = -∂v/∂x. Deal 10 damage.'
+                },
+                {
+                    name: 'Residue Theorem',
+                    cost: 6,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (12 + player.bonuses.damage);
+                        drawCards(player, 2);
+                    },
+                    description: 'Contour integration. Deal 12 damage, draw 2 cards.'
+                }
+            ],
+            'Trigonometry': [
+                {
+                    name: 'Basic Ratios',
+                    cost: 2,
+                    effect: (player, opponent) => { opponent.ip -= (4 + player.bonuses.damage); },
+                    description: 'sin²θ + cos²θ = 1. Deal 4 damage.'
+                },
+                {
+                    name: 'Addition Formulas',
+                    cost: 3,
+                    effect: (player, opponent) => { opponent.ip -= (6 + player.bonuses.damage); },
+                    description: 'sin(A+B) = sinA·cosB + cosA·sinB. Deal 6 damage.'
+                },
+                {
+                    name: 'Law of Cosines',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (7 + player.bonuses.damage); },
+                    description: 'c² = a² + b² - 2ab·cos(C). Deal 7 damage.'
+                },
+                {
+                    name: 'Unit Circle',
+                    cost: 3,
+                    effect: (player, opponent) => { 
+                        opponent.ip -= (5 + player.bonuses.damage);
+                        player.tokens += 1;
+                    },
+                    description: 'sin(π/2) = 1, cos(π/2) = 0. Deal 5 damage, gain 1 token.'
+                },
+                {
+                    name: 'Inverse Functions',
+                    cost: 4,
+                    effect: (player, opponent) => { opponent.ip -= (8 + player.bonuses.damage); },
+                    description: 'arcsin(sin(x)) = x. Deal 8 damage.'
+                }
+            ]
+        };
+
+        // Healing cards (available to all branches)
+        const healingCards = [
+            {
+                name: 'Mathematical Meditation',
+                cost: 2,
+                effect: (player, opponent) => { player.ip += (5 + player.bonuses.heal); },
+                description: 'Contemplate the beauty of mathematics. Heal 5 IP.'
+            },
+            {
+                name: 'Problem Solving',
+                cost: 3,
+                effect: (player, opponent) => { 
+                    player.ip += (3 + player.bonuses.heal); 
+                    drawCards(player, 1 + player.bonuses.draw);
+                },
+                description: 'Exercise your mind. Heal 3 IP, draw 1 card.'
+            },
+            {
+                name: 'Study Session',
+                cost: 4,
+                effect: (player, opponent) => { 
+                    player.ip += (8 + player.bonuses.heal); 
+                    player.tokens += 1;
+                },
+                description: 'Intensive learning. Heal 8 IP, gain 1 token.'
+            }
+        ];
+
+        // Branch bonuses
+        const branchBonuses = {
+            'Algebra': { damage: 1, heal: 0, draw: 0, description: '+1 damage to all attacks' },
+            'Geometry': { damage: 0, heal: 1, draw: 0, description: '+1 healing to all heal effects' },
+            'Calculus': { damage: 2, heal: 0, draw: 0, description: '+2 damage, but cards cost +1 token' },
+            'Number Theory': { damage: 0, heal: 0, draw: 1, description: 'Draw +1 extra card each turn' },
+            'Probability': { damage: 0, heal: 0, draw: 0, description: 'Random bonus effects' },
+            'Complex Analysis': { damage: 1, heal: 1, draw: 0, description: '+1 damage and +1 healing' },
+            'Trigonometry': { damage: 0, heal: 0, draw: 0, description: 'Balanced effects, gain +1 token per turn' }
+        };
+
+        // Message display function
+        function showMessage(message, duration = 5000) {
+            const messageBox = document.createElement('div');
+            messageBox.className = 'success-message';
+            messageBox.style.display = 'block';
+            messageBox.textContent = message;
+            messageBox.style.position = 'fixed';
+            messageBox.style.top = '20px';
+            messageBox.style.left = '50%';
+            messageBox.style.transform = 'translateX(-50%)';
+            messageBox.style.zIndex = '1000';
+            document.body.appendChild(messageBox);
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    document.body.removeChild(messageBox);
+                }, duration);
+            }
+        }
+
+        function showError(message, duration = 4000) {
+            const errorBox = document.getElementById('error-message');
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    errorBox.style.display = 'none';
+                }, duration);
+            }
+        }
+
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', function() {
+            // Multiplayer UI Elements
+            const multiplayerModeBtn = document.getElementById('multiplayer-mode-btn');
+            const multiplayerMenu = document.getElementById('multiplayer-menu');
+            const createRoomBtn = document.getElementById('create-room-btn');
+            const joinRoomBtn = document.getElementById('join-room-btn');
+            const playerNameInput = document.getElementById('player-name-input');
+            const roomCodeInput = document.getElementById('room-code-input');
+            const roomStatus = document.getElementById('room-status');
+            const roomCodeDisplay = document.getElementById('room-code-display');
+            const waitingMessage = document.getElementById('waiting-message');
+            const opponentInfo = document.getElementById('opponent-info');
+            const backToMenuBtn = document.getElementById('back-to-menu-btn');
+            const turnIndicator = document.getElementById('turn-indicator');
+
+            // Multiplayer Mode Button
+            multiplayerModeBtn.addEventListener('click', () => {
+                document.getElementById('game-mode-select').style.display = 'none';
+                document.getElementById('ai-difficulty-select').style.display = 'none';
+                document.getElementById('branch-select').style.display = 'none';
+                multiplayerMenu.style.display = 'block';
+            });
+
+            // Create Room Button
+            createRoomBtn.addEventListener('click', () => {
+                if (!socket) {
+                    showError('Multiplayer केवल server mode में काम करता है। Local file से नहीं चल सकता।');
+                    return;
+                }
+
+                const playerName = playerNameInput.value.trim() || 'Player1';
+                socket.emit('createRoom', { playerName });
+                showMessage('Room बना रहे हैं...', 2000);
+            });
+
+            // Join Room Button
+            joinRoomBtn.addEventListener('click', () => {
+                if (!socket) {
+                    showError('Multiplayer केवल server mode में काम करता है। Local file से नहीं चल सकता।');
+                    return;
+                }
+
+                const code = roomCodeInput.value.trim().toUpperCase();
+                const playerName = playerNameInput.value.trim() || 'Player2';
+                
+                if (code && code.length === 6) {
+                    socket.emit('joinRoom', { roomCode: code, playerName });
+                    showMessage('Room join कर रहे हैं...', 2000);
+                } else {
+                    showError('6-digit room code डालें!');
+                }
+            });
+
+            // Back to Menu Button
+            backToMenuBtn.addEventListener('click', () => {
+                resetMultiplayerState();
+                document.getElementById('main-menu').style.display = 'block';
+                multiplayerMenu.style.display = 'none';
+                document.getElementById('game-mode-select').style.display = 'block';
+                document.getElementById('ai-difficulty-select').style.display = 'block';
+                document.getElementById('branch-select').style.display = 'block';
+                document.getElementById('game-ui').style.display = 'none';
+                turnIndicator.style.display = 'none';
+            });
+
+            // Socket Event Listeners (only if socket exists)
+            if (socket) {
+                socket.on('roomCreated', (data) => {
+                    roomCode = data.roomCode;
+                    myPlayerId = socket.id;
+                    isMultiplayerMode = true;
+                    
+                    roomStatus.style.display = 'block';
+                    roomCodeDisplay.textContent = `Room Code: ${roomCode}`;
+                    waitingMessage.textContent = 'दोस्त को room code भेजें और wait करें...';
+                    showMessage(`Room ${roomCode} बन गया! दोस्त को code भेजें।`, 4000);
+                });
+
+                socket.on('joinedRoom', (data) => {
+                    roomCode = data.roomCode;
+                    myPlayerId = socket.id;
+                    isMultiplayerMode = true;
+                    
+                    roomStatus.style.display = 'block';
+                    roomCodeDisplay.textContent = `Room: ${roomCode}`;
+                    waitingMessage.textContent = 'Room join हो गया! Game ready होने का wait करें...';
+                    showMessage('Room successfully join कर लिया!', 3000);
+                });
+
+                socket.on('opponentJoined', (data) => {
+                    opponentName = data.playerName;
+                    opponentInfo.textContent = `Opponent: ${opponentName} joined!`;
+                    waitingMessage.textContent = 'दोनों players ready हैं! Branch select करें और game start करें.';
+                    showMessage(`${opponentName} join हो गया! Game ready है.`, 3000);
+                });
+
+                socket.on('gameReady', (data) => {
+                    const myPlayerData = data.players.find(p => p.id === myPlayerId);
+                    myPlayerNumber = myPlayerData ? myPlayerData.playerNumber : 'player1';
+                    
+                    multiplayerMenu.style.display = 'none';
+                    document.getElementById('game-mode-select').style.display = 'none';
+                    document.getElementById('branch-select').style.display = 'flex';
+                    document.getElementById('ai-difficulty-select').style.display = 'none';
+                    
+                    // Hide player 2 branch selection in multiplayer
+                    document.getElementById('player2-branch-selection-container').style.display = 'none';
+                    
+                    showMessage(`Game ready! आप ${myPlayerNumber} हैं। Branch select करें!`, 4000);
+                });
+
+                socket.on('gameStarted', (data) => {
+                    isMyTurn = (myPlayerNumber === data.gameState.currentPlayer);
+                    startMultiplayerGame();
+                });
+
+                socket.on('opponentAction', (data) => {
+                    handleOpponentAction(data.action);
+                });
+
+                socket.on('turnChanged', (data) => {
+                    isMyTurn = (myPlayerNumber === data.currentPlayer);
+                    updateTurnIndicator();
+                });
+
+                socket.on('opponentDisconnected', (data) => {
+                    showMessage(`${data.playerName} disconnect हो गया!`, 5000);
+                });
+
+                socket.on('error', (data) => {
+                    showError(data.message);
+                });
+            }
+        });
+
+        // Multiplayer functions
+        function resetMultiplayerState() {
+            isMultiplayerMode = false;
+            roomCode = null;
+            myPlayerId = null;
+            myPlayerNumber = null;
+            opponentName = null;
+            isMyTurn = true;
+            
+            const roomStatus = document.getElementById('room-status');
+            roomStatus.style.display = 'none';
+            document.getElementById('room-code-display').textContent = '';
+            document.getElementById('waiting-message').textContent = '';
+            document.getElementById('opponent-info').textContent = '';
+            document.getElementById('player-name-input').value = '';
+            document.getElementById('room-code-input').value = '';
+        }
+
+        function startMultiplayerGame() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-mode-select').style.display = 'none';
+            document.getElementById('branch-select').style.display = 'none';
+            document.getElementById('multiplayer-menu').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('turn-indicator').style.display = 'block';
+            
+            gameMode = 'vsmultiplayer';
+            isGameOver = false;
+            
+            initializeGameForMultiplayer();
+            updateTurnIndicator();
+            
+            if (isMyTurn) {
+                startDrawPhase();
+                showMessage('आपका turn! Game शुरू!', 3000);
+            } else {
+                showMessage('Opponent का turn है, wait करें...', 2000);
+            }
+        }
+
+        function initializeGameForMultiplayer() {
+            currentPlayer = myPlayerNumber;
+            isGameOver = false;
+            
+            // Reset player stats
+            player1.ip = 100;
+            player1.tokens = 15;
+            player1.hand = [];
+            player1.bonuses = { damage: 0, heal: 0, draw: 0 };
+            player1.selectedBranch = document.getElementById('branch-player1').value;
+            
+            player2.ip = 100;
+            player2.tokens = 15; 
+            player2.hand = [];
+            player2.bonuses = { damage: 0, heal: 0, draw: 0 };
+            player2.selectedBranch = document.getElementById('branch-player1').value; // Same as player1 for now
+            
+            // Apply branch bonuses
+            applyBranchBonuses(player1, player1.selectedBranch);
+            applyBranchBonuses(player2, player2.selectedBranch);
+            
+            // Initialize deck
+            initializeDeck();
+            shuffleDeck();
+            
+            // Draw initial cards
+            drawCards(player1, CARDSTODRAWPERTURN);
+            drawCards(player2, CARDSTODRAWPERTURN);
+            
+            // Set initial phase
+            currentPhase = 'draw';
+            playedCardsThisTurn = [];
+            
+            // Update UI
+            updateGameUI();
+        }
+
+        function handleOpponentAction(action) {
+            console.log('Opponent action received:', action);
+            
+            switch(action.type) {
+                case 'PLAY_CARD':
+                    handleOpponentPlayCard(action);
+                    break;
+                case 'END_TURN':
+                    handleOpponentEndTurn(action);
+                    break;
+                case 'PHASE_CHANGE':
+                    currentPhase = action.phase;
+                    updatePhaseUI();
+                    break;
+                case 'GAME_STATE_UPDATE':
+                    updateGameStateFromOpponent(action);
+                    break;
+                default:
+                    console.log('Unknown opponent action:', action.type);
+            }
+        }
+
+        function handleOpponentPlayCard(action) {
+            const { card, playerType, targetPlayer } = action;
+            const opponent = playerType === 'player1' ? player1 : player2;
+            const target = targetPlayer === 'player1' ? player1 : player2;
+            
+            // Remove card from opponent hand (we don't know which card exactly)
+            if (opponent.hand.length > 0) {
+                opponent.hand.pop(); // Remove last card as placeholder
+            }
+            
+            // Execute card effect
+            if (card.effect) {
+                card.effect(opponent, target);
+            }
+            
+            // Update tokens
+            opponent.tokens -= card.cost;
+            
+            updateGameUI();
+            showMessage(`Opponent ने ${card.name} खेला!`, 2000);
+            
+            // Check for game over
+            if (player1.ip <= 0 || player2.ip <= 0) {
+                handleMultiplayerGameOver();
+            }
+        }
+
+        function handleOpponentEndTurn(action) {
+            // Switch turns
+            currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
+            isMyTurn = (myPlayerNumber === currentPlayer);
+            
+            // Reset phase
+            currentPhase = 'draw';
+            playedCardsThisTurn = [];
+            
+            updateTurnIndicator();
+            updateGameUI();
+            updatePhaseUI();
+            
+            if (isMyTurn) {
+                startDrawPhase();
+                showMessage('आपका turn शुरू!', 2000);
+            }
+        }
+
+        function updateTurnIndicator() {
+            const turnIndicator = document.getElementById('turn-indicator');
+            const currentPlayerDisplay = document.getElementById('current-player-display');
+            
+            if (isMultiplayerMode) {
+                if (isMyTurn) {
+                    turnIndicator.textContent = 'आपका Turn';
+                    turnIndicator.className = 'turn-indicator';
+                    if (currentPlayerDisplay) {
+                        currentPlayerDisplay.textContent = 'आप';
+                    }
+                } else {
+                    turnIndicator.textContent = 'Opponent का Turn';
+                    turnIndicator.className = 'turn-indicator opponent-turn';
+                    if (currentPlayerDisplay) {
+                        currentPlayerDisplay.textContent = 'Opponent';
+                    }
+                }
+                
+                // Disable/enable UI based on turn
+                const gameActions = document.querySelectorAll('.card, .phase-button');
+                gameActions.forEach(element => {
+                    if (isMyTurn) {
+                        element.style.pointerEvents = 'auto';
+                        element.style.opacity = '1';
+                    } else {
+                        element.style.pointerEvents = 'none';
+                        element.style.opacity = '0.5';
+                    }
+                });
+            }
+        }
+
+        function sendActionToOpponent(actionType, actionData) {
+            if (!isMultiplayerMode || !roomCode || !socket) return;
+            
+            const action = {
+                type: actionType,
+                playerId: myPlayerId,
+                playerNumber: myPlayerNumber,
+                ...actionData
+            };
+            
+            socket.emit('gameAction', {
+                roomCode: roomCode,
+                action: action,
+                playerId: myPlayerId
+            });
+        }
+
+        function handleMultiplayerGameOver() {
+            const winner = player1.ip <= 0 ? 'player2' : 'player1';
+            const isWinner = (myPlayerNumber === winner);
+            
+            isGameOver = true;
+            
+            if (isWinner) {
+                showMessage('🎉 आप जीत गए! Congratulations! 🎉', 0);
+            } else {
+                showMessage('😔 आप हार गए! Better luck next time! 😔', 0);
+            }
+            
+            // Send game over to opponent
+            sendActionToOpponent('GAME_OVER', {
+                winner: winner,
+                finalState: {
+                    player1: { ip: player1.ip, tokens: player1.tokens },
+                    player2: { ip: player2.ip, tokens: player2.tokens }
+                }
+            });
+            
+            // Show restart option
+            setTimeout(() => {
+                if (confirm('Game खत्म! क्या main menu पर वापस जाना है?')) {
+                    backToMainMenu();
+                }
+            }, 3000);
+        }
+
+        function backToMainMenu() {
+            resetMultiplayerState();
+            isGameOver = false;
+            
+            document.getElementById('game-ui').style.display = 'none';
+            document.getElementById('turn-indicator').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            document.getElementById('game-mode-select').style.display = 'block';
+            document.getElementById('ai-difficulty-select').style.display = 'block';
+            document.getElementById('branch-select').style.display = 'block';
+        }
+
+        // Initialize deck
+        function initializeDeck() {
+            deck = [];
+            
+            // Add cards from selected branches
+            const allCards = [];
+            
+            // Add branch-specific cards
+            for (let branch in cardDefinitions) {
+                allCards.push(...cardDefinitions[branch]);
+            }
+            
+            // Add healing cards
+            allCards.push(...healingCards);
+            
+            // Create multiple copies of each card for deck variety
+            for (let card of allCards) {
+                for (let i = 0; i < 2; i++) { // 2 copies of each card
+                    deck.push({ ...card });
+                }
+            }
+            
+            console.log(`Deck initialized with ${deck.length} cards`);
+        }
+
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function drawCards(player, count) {
+            for (let i = 0; i < count && deck.length > 0 && player.hand.length < MAXHANDSIZE; i++) {
+                player.hand.push(deck.pop());
+            }
+            updateGameUI();
+        }
+
+        // Branch effects and bonuses
+        function displayBranchEffects(playerNumber) {
+            const branchSelect = document.getElementById(`branch-${playerNumber}`);
+            const effectDisplay = document.getElementById(`branch-effect-display-${playerNumber}`);
+            
+            const selectedBranch = branchSelect.value;
+            const bonus = branchBonuses[selectedBranch];
+            
+            effectDisplay.innerHTML = `
+                <h4>${selectedBranch} Branch Effects:</h4>
+                <p><strong>Bonus:</strong> ${bonus.description}</p>
+            `;
+            effectDisplay.style.display = 'block';
+        }
+
+        function applyBranchBonuses(player, branch) {
+            const bonus = branchBonuses[branch];
+            if (bonus) {
+                player.bonuses = { ...bonus };
+            }
+        }
+
+        // Game start function
+        function startGame() {
+            // Get selected values
+            gameMode = document.getElementById('game-mode').value;
+            aiDifficulty = document.getElementById('ai-difficulty').value;
+            
+            // Set branches
+            player1.selectedBranch = document.getElementById('branch-player1').value;
+            if (gameMode === 'vslocalplayer') {
+                player2.selectedBranch = document.getElementById('branch-player2').value;
+            } else {
+                player2.selectedBranch = document.getElementById('branch-player1').value; // AI gets same branch for now
+            }
+            
+            // Apply branch bonuses
+            applyBranchBonuses(player1, player1.selectedBranch);
+            applyBranchBonuses(player2, player2.selectedBranch);
+            
+            // Initialize game state
+            isGameOver = false;
+            currentPlayer = 'player1';
+            currentPhase = 'draw';
+            playedCardsThisTurn = [];
+            
+            // Reset player stats
+            player1.ip = 100;
+            player1.tokens = 15;
+            player1.hand = [];
+            
+            player2.ip = 100;
+            player2.tokens = 15;
+            player2.hand = [];
+            
+            // Initialize deck
+            initializeDeck();
+            shuffleDeck();
+            
+            // Draw initial cards
+            drawCards(player1, CARDSTODRAWPERTURN);
+            drawCards(player2, CARDSTODRAWPERTURN);
+            
+            // Hide menus and show game UI
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-mode-select').style.display = 'none';
+            document.getElementById('ai-difficulty-select').style.display = 'none';
+            document.getElementById('branch-select').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            
+            // For multiplayer, send start game signal
+            if (isMultiplayerMode && socket) {
+                const branches = {
+                    player1: player1.selectedBranch,
+                    player2: player2.selectedBranch
+                };
+                socket.emit('startGame', { roomCode, branches });
+                return; // Don't start turn cycle yet, wait for server signal
+            }
+            
+            // Update UI and start game
+            updateGameUI();
+            updatePhaseUI();
+            startDrawPhase();
+            
+            showMessage('Game शुरू हो गया!', 3000);
+        }
+
+        // Game phases
+        function startDrawPhase() {
+            if (isMultiplayerMode && !isMyTurn) {
+                return; // Not your turn
+            }
+            
+            currentPhase = 'draw';
+            const currentPlayerObj = getCurrentPlayerObject();
+            
+            // Draw cards
+            const drawCount = currentPlayerObj.selectedBranch === 'Number Theory' ? 
+                CARDSTODRAWPERTURN + 1 : CARDSTODRAWPERTURN;
+            drawCards(currentPlayerObj, drawCount);
+            
+            // Add token for Trigonometry
+            if (currentPlayerObj.selectedBranch === 'Trigonometry') {
+                currentPlayerObj.tokens = Math.min(MAXTOKENS, currentPlayerObj.tokens + 1);
+            }
+            
+            updateGameUI();
+            updatePhaseUI();
+            
+            if (isMultiplayerMode) {
+                sendActionToOpponent('PHASE_CHANGE', { phase: 'draw' });
+            }
+            
+            showMessage(`${getCurrentPlayerName()} का Draw Phase`, 2000);
+        }
+
+        function startPlayPhase() {
+            if (isMultiplayerMode && !isMyTurn) {
+                return;
+            }
+            
+            currentPhase = 'play';
+            playedCardsThisTurn = [];
+            updatePhaseUI();
+            
+            if (isMultiplayerMode) {
+                sendActionToOpponent('PHASE_CHANGE', { phase: 'play' });
+            }
+            
+            showMessage(`${getCurrentPlayerName()} का Play Phase`, 2000);
+        }
+
+        function startBattlePhase() {
+            if (isMultiplayerMode && !isMyTurn) {
+                return;
+            }
+            
+            currentPhase = 'battle';
+            updatePhaseUI();
+            
+            if (isMultiplayerMode) {
+                sendActionToOpponent('PHASE_CHANGE', { phase: 'battle' });
+            }
+            
+            showMessage(`${getCurrentPlayerName()} का Battle Phase`, 2000);
+        }
+
+        function startHealPhase() {
+            if (isMultiplayerMode && !isMyTurn) {
+                return;
+            }
+            
+            currentPhase = 'heal';
+            updatePhaseUI();
+            
+            if (isMultiplayerMode) {
+                sendActionToOpponent('PHASE_CHANGE', { phase: 'heal' });
+            }
+            
+            showMessage(`${getCurrentPlayerName()} का Heal Phase`, 2000);
+        }
+
+        function endTurn() {
+            if (isMultiplayerMode && !isMyTurn) {
+                return;
+            }
+            
+            // Switch players
+            currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
+            currentPhase = 'draw';
+            playedCardsThisTurn = [];
+            
+            if (isMultiplayerMode) {
+                isMyTurn = false; // Wait for server confirmation
+                sendActionToOpponent('END_TURN', { newCurrentPlayer: currentPlayer });
+            } else {
+                // Single player or local multiplayer
+                updateGameUI();
+                updatePhaseUI();
+                
+                if (gameMode === 'vsai' && currentPlayer === 'player2') {
+                    // AI turn
+                    setTimeout(() => {
+                        playAITurn();
+                    }, 1000);
+                } else {
+                    startDrawPhase();
+                }
+            }
+            
+            showMessage(`Turn ended. ${getCurrentPlayerName()} का turn`, 2000);
+        }
+
+        // Helper functions
+        function getCurrentPlayerObject() {
+            return currentPlayer === 'player1' ? player1 : player2;
+        }
+
+        function getCurrentPlayerName() {
+            if (isMultiplayerMode) {
+                return currentPlayer === myPlayerNumber ? 'आप' : 'Opponent';
+            }
+            return currentPlayer === 'player1' ? 'Player 1' : 
+                   (gameMode === 'vsai' ? 'AI' : 'Player 2');
+        }
+
+        function getOpponentObject() {
+            return currentPlayer === 'player1' ? player2 : player1;
+        }
+
+        // Card playing function
+        async function playCard(card, cardElem, playerType) {
+            const player = playerType === 'player1' ? player1 : player2;
+            const opponent = playerType === 'player1' ? player2 : player1;
+            
+            // Check if it's multiplayer and not your turn
+            if (isMultiplayerMode && playerType !== myPlayerNumber) {
+                showMessage('यह आपका turn नहीं है!', 1500);
+                return;
+            }
+            
+            // Check if player has enough tokens
+            let cardCost = card.cost;
+            if (player.selectedBranch === 'Calculus') {
+                cardCost += 1; // Calculus cards cost +1
+            }
+            
+            if (player.tokens < cardCost) {
+                showMessage('पर्याप्त tokens नहीं हैं!', 2000);
+                return;
+            }
+            
+            // Check phase restrictions
+            if (currentPhase === 'draw') {
+                showMessage('पहले Play Phase शुरू करें!', 2000);
+                return;
+            }
+            
+            // Deduct tokens
+            player.tokens -= cardCost;
+            
+            // Execute card effect
+            if (card.effect) {
+                card.effect(player, opponent);
+            }
+            
+            // Remove card from hand
+            const cardIndex = player.hand.indexOf(card);
+            if (cardIndex > -1) {
+                player.hand.splice(cardIndex, 1);
+            }
+            
+            // Add to discard pile
+            discardPile.push(card);
+            playedCardsThisTurn.push(card);
+            
+            // Remove card element from UI
+            if (cardElem) {
+                cardElem.remove();
+            }
+            
+            // Send action to opponent in multiplayer
+            if (isMultiplayerMode) {
+                sendActionToOpponent('PLAY_CARD', {
+                    card: card,
+                    playerType: playerType,
+                    targetPlayer: playerType === 'player1' ? 'player2' : 'player1'
+                });
+            }
+            
+            // Update UI
+            updateGameUI();
+            
+            // Check for game over
+            if (player1.ip <= 0 || player2.ip <= 0) {
+                if (isMultiplayerMode) {
+                    handleMultiplayerGameOver();
+                } else {
+                    handleGameOver();
+                }
+                return;
+            }
+            
+            showMessage(`${card.name} खेला गया!`, 2000);
+        }
+
+        // Game over handling
+        function handleGameOver() {
+            isGameOver = true;
+            
+            let winner;
+            if (player1.ip <= 0) {
+                winner = gameMode === 'vsai' ? 'AI' : 'Player 2';
+            } else {
+                winner = 'Player 1';
+            }
+            
+            showMessage(`Game Over! ${winner} जीत गया!`, 0);
+            
+            setTimeout(() => {
+                if (confirm('नया game शुरू करना चाहते हैं?')) {
+                    resetGame();
+                }
+            }, 3000);
+        }
+
+        function resetGame() {
+            // Reset all game state
+            isGameOver = false;
+            currentPlayer = 'player1';
+            currentPhase = 'draw';
+            playedCardsThisTurn = [];
+            deck = [];
+            discardPile = [];
+            
+            // Reset player stats
+            player1.ip = 100;
+            player1.tokens = 15;
+            player1.hand = [];
+            
+            player2.ip = 100;
+            player2.tokens = 15;
+            player2.hand = [];
+            
+            // Show main menu
+            document.getElementById('game-ui').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            document.getElementById('game-mode-select').style.display = 'block';
+            document.getElementById('ai-difficulty-select').style.display = 'block';
+            document.getElementById('branch-select').style.display = 'block';
+        }
+
+        // AI turn (simplified)
+        function playAITurn() {
+            if (isGameOver) return;
+            
+            // AI draws cards
+            startDrawPhase();
+            
+            setTimeout(() => {
+                // AI plays random cards
+                const aiPlayer = player2;
+                const playableCards = aiPlayer.hand.filter(card => {
+                    let cost = card.cost;
+                    if (aiPlayer.selectedBranch === 'Calculus') cost += 1;
+                    return aiPlayer.tokens >= cost;
+                });
+                
+                if (playableCards.length > 0) {
+                    const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+                    playCard(randomCard, null, 'player2');
+                }
+                
+                setTimeout(() => {
+                    endTurn();
+                }, 1000);
+            }, 1500);
+        }
+
+        // UI update functions
+        function updateGameUI() {
+            // Update IP displays
+            document.getElementById('player1-ip').textContent = player1.ip;
+            document.getElementById('player2-ip').textContent = player2.ip;
+            
+            // Update token displays
+            document.getElementById('player1-tokens').textContent = player1.tokens;
+            document.getElementById('player2-tokens').textContent = player2.tokens;
+            
+            // Update branch displays
+            document.getElementById('player1-branch').textContent = player1.selectedBranch;
+            document.getElementById('player2-branch').textContent = player2.selectedBranch;
+            
+            // Update deck and discard counts
+            document.getElementById('deck-count').textContent = deck.length;
+            document.getElementById('discard-count').textContent = discardPile.length;
+            
+            // Update hands
+            updateHandDisplay('player1', player1.hand);
+            updateHandDisplay('player2', player2.hand);
+            
+            // Update player names for multiplayer
+            if (isMultiplayerMode) {
+                const player1Display = document.getElementById('player1-name-display');
+                const player2Display = document.getElementById('player2-name-display');
+                
+                if (myPlayerNumber === 'player1') {
+                    player1Display.innerHTML = `आपका IP: <span id="player1-ip">${player1.ip}</span>`;
+                    player2Display.innerHTML = `Opponent IP: <span id="player2-ip">${player2.ip}</span>`;
+                } else {
+                    player1Display.innerHTML = `Opponent IP: <span id="player1-ip">${player1.ip}</span>`;
+                    player2Display.innerHTML = `आपका IP: <span id="player2-ip">${player2.ip}</span>`;
+                }
+            }
+        }
+
+        function updateHandDisplay(playerType, hand) {
+            const handElement = document.getElementById(`${playerType}-hand`);
+            handElement.innerHTML = '';
+            
+            hand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.onclick = () => playCard(card, cardDiv, playerType);
+                
+                let cardCost = card.cost;
+                const player = playerType === 'player1' ? player1 : player2;
+                if (player.selectedBranch === 'Calculus') {
+                    cardCost += 1;
+                }
+                
+                cardDiv.innerHTML = `
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-effect">${card.description}</div>
+                    <div class="card-cost">${cardCost}</div>
+                `;
+                
+                // Disable card if not enough tokens or not player's turn
+                if (player.tokens < cardCost || 
+                    (isMultiplayerMode && playerType !== myPlayerNumber) ||
+                    (gameMode === 'vsai' && playerType === 'player2')) {
+                    cardDiv.style.opacity = '0.5';
+                    cardDiv.style.pointerEvents = 'none';
+                }
+                
+                handElement.appendChild(cardDiv);
+            });
+        }
+
+        function updatePhaseUI() {
+            document.getElementById('current-phase').textContent = 
+                currentPhase.charAt(0).toUpperCase() + currentPhase.slice(1);
+            
+            const currentPlayerDisplay = document.getElementById('current-player-display');
+            if (!isMultiplayerMode) {
+                currentPlayerDisplay.textContent = getCurrentPlayerName();
+            }
+            
+            // Enable/disable phase buttons based on current phase
+            const phaseButtons = {
+                'draw-phase-btn': currentPhase !== 'draw',
+                'play-phase-btn': currentPhase !== 'play',
+                'battle-phase-btn': currentPhase !== 'battle',
+                'heal-phase-btn': currentPhase !== 'heal'
+            };
+            
+            for (let buttonId in phaseButtons) {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.disabled = phaseButtons[buttonId];
+                }
+            }
+            
+            // Disable all phase controls if not player's turn in multiplayer
+            if (isMultiplayerMode && !isMyTurn) {
+                Object.keys(phaseButtons).forEach(buttonId => {
+                    const button = document.getElementById(buttonId);
+                    if (button) {
+                        button.disabled = true;
+                    }
+                });
+                document.getElementById('end-turn-btn').disabled = true;
+            } else if (isMultiplayerMode && isMyTurn) {
+                document.getElementById('end-turn-btn').disabled = false;
+            }
+        }
+
+    </script>
+</body>
+</html>
