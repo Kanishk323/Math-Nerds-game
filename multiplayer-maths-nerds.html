@@ -778,108 +778,9 @@
             }
         }
     </style>
-</head>
+
 
 <body>
-<!-- Multiplayer Menu Overlay -->
-<div id="multiplayerMenu" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                                 background: rgba(0,0,0,0.95); z-index: 10000; color: white;">
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px;">
-
-        <!-- Multiplayer Setup -->
-        <div id="multiplayerSetup">
-            <h2 style="text-align: center; color: #4CAF50; margin-bottom: 30px; font-family: Arial;">🎮 Multiplayer Mode</h2>
-
-            <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; min-width: 350px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-                <div style="margin-bottom: 25px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #E8E8E8;">आपका नाम:</label>
-                    <input type="text" id="playerNameInput" placeholder="अपना नाम लिखें" maxlength="15"
-                           style="width: 100%; padding: 12px; border: 2px solid #4CAF50; border-radius: 8px; font-size: 16px; 
-                                  background: rgba(255,255,255,0.9); box-sizing: border-box;">
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #E8E8E8;">Room Code:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="roomCodeInput" placeholder="Room Code डालें" maxlength="8"
-                               style="flex: 1; padding: 12px; border: 2px solid #4CAF50; border-radius: 8px; font-size: 16px; 
-                                      background: rgba(255,255,255,0.9); text-transform: uppercase;">
-                        <button onclick="generateRoomCode()" 
-                                style="padding: 12px 15px; background: linear-gradient(135deg, #2196F3, #21CBF3); 
-                                       color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
-                                       transition: transform 0.2s;">
-                            🎲
-                        </button>
-                    </div>
-                    <small style="color: #BBB; font-size: 12px;">अपना friend को यही code भेजें</small>
-                </div>
-
-                <div style="text-align: center; margin-top: 30px;">
-                    <button onclick="startMultiplayer()" 
-                            style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; border: none; 
-                                   padding: 15px 35px; border-radius: 25px; font-size: 18px; cursor: pointer; 
-                                   margin-right: 15px; font-weight: bold; transition: transform 0.3s;">
-                        🚀 Join Game
-                    </button>
-                    <button onclick="closeMultiplayer()" 
-                            style="background: linear-gradient(135deg, #f44336, #d32f2f); color: white; border: none; 
-                                   padding: 15px 35px; border-radius: 25px; font-size: 18px; cursor: pointer;
-                                   font-weight: bold; transition: transform 0.3s;">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Waiting Room -->
-        <div id="waitingRoom" style="display: none; text-align: center;">
-            <h2 style="color: #4CAF50; margin-bottom: 20px; font-family: Arial;">⏳ Players का इंतजार...</h2>
-            <div style="background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; min-width: 350px; 
-                        box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-                <div style="font-size: 24px; margin-bottom: 20px; color: #FFC107;">🎯</div>
-                <p style="font-size: 20px; margin-bottom: 15px; color: white;">Room Code: <strong id="roomCodeDisplay" 
-                   style="color: #4CAF50; font-size: 28px; letter-spacing: 2px;"></strong></p>
-                <p id="playersCount" style="font-size: 18px; margin-bottom: 15px; color: #E8E8E8;">Players: 1/2</p>
-                <p id="waitingMessage" style="font-size: 16px; color: #FFC107;">दूसरा player join होने का wait कर रहे हैं...</p>
-                <p id="connectionStatus" style="font-size: 14px; color: #888; margin-top: 25px;">Server से connect हो रहे हैं...</p>
-
-                <div style="margin-top: 30px;">
-                    <button onclick="copyRoomCode()" 
-                            style="background: #673AB7; color: white; border: none; padding: 12px 25px; 
-                                   border-radius: 15px; cursor: pointer; margin-right: 10px; font-weight: bold;">
-                        📋 Copy Code
-                    </button>
-                    <button onclick="closeMultiplayer()" 
-                            style="background: #f44336; color: white; border: none; padding: 12px 25px; 
-                                   border-radius: 15px; cursor: pointer; font-weight: bold;">
-                        🚪 Leave Room
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Game UI Enhancements for Multiplayer -->
-<div id="multiplayerGameUI" style="display: none;">
-    <!-- Turn Indicator -->
-    <div id="turnIndicator" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
-                                    background: linear-gradient(135deg, #4CAF50, #45a049); color: white; 
-                                    padding: 12px 25px; border-radius: 25px; font-weight: bold; z-index: 1000; 
-                                    font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        🎯 आपकी Turn
-    </div>
-
-    <!-- Opponent Info -->
-    <div id="opponentInfo" style="position: fixed; top: 20px; right: 20px; 
-                                  background: rgba(0,0,0,0.8); color: white; padding: 15px 20px; 
-                                  border-radius: 15px; font-size: 16px; z-index: 1000;
-                                  box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        <div style="margin-bottom: 8px;">🎮 <span id="opponentName">Friend...</span></div>
-        <div style="font-size: 14px; color: #FFC107;">💪 IP: <span id="opponentIP">100</span></div>
-    </div>
-</div>
-
     <div id="game-container">
         <h1>Mathematical Card Battle</h1>
         <div id="game-mode-select">
@@ -927,7 +828,53 @@
             <button class="game-button" onclick="startGame()">Game Start karo</button>
         </div>
 
-        <div id="game-ui" style="display: none;">
+        
+        <!-- Multiplayer Menu -->
+        <div id="multiplayer-menu" style="display: none;" class="text-center p-8">
+            <h2 class="text-3xl font-bold mb-6 text-purple-600">🎮 Multiplayer Mode</h2>
+
+            <div class="mb-6">
+                <input type="text" id="player-name-input" placeholder="Apna naam enter karo" 
+                       class="p-3 border-2 border-purple-300 rounded-lg w-64 text-center mb-4" 
+                       maxlength="20">
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <button id="create-room-btn" 
+                        class="bg-green-500 hover:bg-green-600 text-white font-bold px-8 py-3 rounded-lg text-lg transition-colors">
+                    🏠 Room Banao
+                </button>
+
+                <div class="text-lg font-semibold text-gray-600">या</div>
+
+                <div class="flex justify-center items-center space-x-2">
+                    <input type="text" id="room-code-input" placeholder="Room Code daalo" 
+                           class="p-3 border-2 border-blue-300 rounded-lg text-center uppercase tracking-wide" 
+                           maxlength="6">
+                    <button id="join-room-btn" 
+                            class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-6 py-3 rounded-lg transition-colors">
+                        🚪 Join Karo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Room Code Display -->
+            <div id="room-status" class="mb-4">
+                <p id="room-code-display" class="text-2xl font-bold text-green-600"></p>
+                <p id="waiting-message" class="text-lg text-gray-600"></p>
+                <p id="opponent-info" class="text-lg text-blue-600"></p>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="error-message" class="text-red-600 font-semibold hidden"></div>
+
+            <!-- Back Button -->
+            <button id="back-to-menu-btn" 
+                    class="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                🔙 Menu par wapas jao
+            </button>
+        </div>
+<div id="game-ui" style="display: none;">
             <div class="deck-pile" id="deck-pile">
                 Deck
                 <span id="deck-count">0</span>
@@ -1067,6 +1014,7 @@
     </div>
 
     <script>
+
         // Game State
         let gameMode = 'vs_ai'; // 'vs_ai' or 'vs_local_player'
         let aiDifficulty = 'medium'; // 'easy', 'medium', 'hard'
@@ -1129,7 +1077,16 @@
             }
         };
         let currentTurn = 0; // Tracks game turns
-        let currentPlayer = 'player1'; // 'player1' or 'player2'
+        
+// Multiplayer Variables
+const socket = io();
+let roomCode = null;
+let myPlayerId = null;
+let myPlayerNumber = null; // 'player1' or 'player2'
+let opponentName = null;
+let isMultiplayerMode = false;
+let isMyTurn = true;
+let currentPlayer = 'player1'; // 'player1' or 'player2'
         let isGameOver = false;
 
         // Deck and Hand Management
@@ -3388,6 +3345,143 @@ default:
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+    // Multiplayer UI Elements
+    const multiplayerMenu = document.getElementById('multiplayer-menu');
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const joinRoomBtn = document.getElementById('join-room-btn');
+    const playerNameInput = document.getElementById('player-name-input');
+    const roomCodeInput = document.getElementById('room-code-input');
+    const roomCodeDisplay = document.getElementById('room-code-display');
+    const waitingMessage = document.getElementById('waiting-message');
+    const opponentInfo = document.getElementById('opponent-info');
+    const errorMessage = document.getElementById('error-message');
+    const backToMenuBtn = document.getElementById('back-to-menu-btn');
+
+    // Multiplayer Button Event Listeners
+    createRoomBtn.addEventListener('click', () => {
+        const playerName = playerNameInput.value.trim() || 'Player1';
+        socket.emit('createRoom', { playerName });
+        showMessage('Room bana rahe hain...', 2000);
+    });
+
+    joinRoomBtn.addEventListener('click', () => {
+        const code = roomCodeInput.value.trim().toUpperCase();
+        const playerName = playerNameInput.value.trim() || 'Player2';
+
+        if (code && code.length === 6) {
+            socket.emit('joinRoom', { roomCode: code, playerName });
+            showMessage('Room join kar rahe hain...', 2000);
+        } else {
+            showError('6-digit room code daalo!');
+        }
+    });
+
+    backToMenuBtn.addEventListener('click', () => {
+        // Reset multiplayer state
+        isMultiplayerMode = false;
+        roomCode = null;
+        myPlayerId = null;
+        myPlayerNumber = null;
+
+        // Show main menu
+        document.getElementById('main-menu').style.display = 'block';
+        multiplayerMenu.style.display = 'none';
+        document.getElementById('game-ui').style.display = 'none';
+        document.getElementById('game-mode-select').style.display = 'block';
+
+        // Clear inputs
+        playerNameInput.value = '';
+        roomCodeInput.value = '';
+        roomCodeDisplay.textContent = '';
+        waitingMessage.textContent = '';
+        opponentInfo.textContent = '';
+    });
+
+    // Socket Event Listeners
+    socket.on('roomCreated', (data) => {
+        roomCode = data.roomCode;
+        myPlayerId = socket.id;
+        isMultiplayerMode = true;
+
+        roomCodeDisplay.textContent = `Room Code: ${roomCode}`;
+        waitingMessage.textContent = 'Dost ko room code bhejo aur wait karo...';
+        showMessage(`Room ${roomCode} ban gaya! Dost ko code bhejo.`, 4000);
+    });
+
+    socket.on('joinedRoom', (data) => {
+        roomCode = data.roomCode;
+        myPlayerId = socket.id;
+        isMultiplayerMode = true;
+
+        roomCodeDisplay.textContent = `Room: ${roomCode}`;
+        waitingMessage.textContent = 'Room join ho gaya! Game ready hone ka wait karo...';
+        showMessage('Room successfully join kar liya!', 3000);
+    });
+
+    socket.on('opponentJoined', (data) => {
+        opponentName = data.playerName;
+        opponentInfo.textContent = `Opponent: ${opponentName} joined!`;
+        waitingMessage.textContent = 'Dono players ready hain! Branch select karo aur game start karo.';
+        showMessage(`${opponentName} join ho gaya! Game ready hai.`, 3000);
+    });
+
+    socket.on('gameReady', (data) => {
+        // Determine my player number
+        const myPlayerData = data.players.find(p => p.id === myPlayerId);
+        myPlayerNumber = myPlayerData ? myPlayerData.playerNumber : 'player1';
+
+        // Hide multiplayer menu and show branch selection
+        multiplayerMenu.style.display = 'none';
+        document.getElementById('game-mode-select').style.display = 'none';
+        document.getElementById('branch-select').style.display = 'flex';
+        document.getElementById('ai-difficulty-select').style.display = 'none';
+
+        showMessage(`Game ready! Aap ${myPlayerNumber} hain. Branch select karo!`, 4000);
+    });
+
+    socket.on('gameStarted', (data) => {
+        // Game actually started by both players
+        isMyTurn = (myPlayerNumber === data.gameState.currentPlayer);
+        startMultiplayerGame();
+    });
+
+    socket.on('opponentAction', (data) => {
+        handleOpponentAction(data.action);
+    });
+
+    socket.on('turnChanged', (data) => {
+        isMyTurn = (myPlayerNumber === data.currentPlayer);
+        updateTurnIndicator();
+    });
+
+    socket.on('gameStateUpdate', (gameState) => {
+        // Sync game state if needed
+        console.log('Game state updated:', gameState);
+    });
+
+    socket.on('opponentDisconnected', (data) => {
+        showMessage(`${data.playerName} disconnect ho gaya!`, 5000);
+        // Handle opponent disconnect
+    });
+
+    socket.on('error', (data) => {
+        showError(data.message);
+    });
+
+    socket.on('chatMessage', (data) => {
+        // Handle chat messages if you want to add chat feature
+        console.log(`${data.playerName}: ${data.message}`);
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+        setTimeout(() => {
+            errorMessage.classList.add('hidden');
+        }, 4000);
+    }
+
+
             displayBranchEffects('player1');
             displayBranchEffects('player2');
             updateStatus();
@@ -3439,364 +3533,325 @@ default:
                 a = temp;
             }
             return a;
-        }</script>
-
-    <script src="/socket.io/socket.io.js"></script>
-
-
-<script>
-// ================= MULTIPLAYER FUNCTIONALITY =================
-
-let socket = null;
-let isMultiplayer = false;
-let playerName = '';
-let roomCode = '';
-let isMyTurn = false;
-let opponentName = '';
-let multiplayerGameStarted = false;
-
-// Initialize multiplayer connection
-function initMultiplayer() {
-    socket = io();
-
-    socket.on('connect', () => {
-        console.log('Connected to server');
-        document.getElementById('connectionStatus').textContent = '✅ Server से connected!';
-    });
-
-    socket.on('disconnect', () => {
-        document.getElementById('connectionStatus').textContent = '❌ Connection lost...';
-    });
-
-    socket.on('playerJoined', (data) => {
-        console.log('Player joined:', data);
-        document.getElementById('playersCount').textContent = `Players: ${data.totalPlayers}/2`;
-        if (data.totalPlayers === 2) {
-            document.getElementById('waitingMessage').textContent = '🎉 दोनों players ready! Game start हो रहा है...';
         }
-    });
 
-    socket.on('gameReady', (data) => {
-        console.log('Game ready:', data);
-        const opponent = data.players.find(p => p.id !== socket.id);
-        opponentName = opponent ? opponent.name : 'Friend';
+// Multiplayer Game Functions
+function startMultiplayerGame() {
+    // Hide all menus and show game UI
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('game-mode-select').style.display = 'none';
+    document.getElementById('branch-select').style.display = 'none';
+    document.getElementById('multiplayer-menu').style.display = 'none';
+    document.getElementById('game-ui').style.display = 'block';
 
-        setTimeout(() => {
-            // Hide multiplayer menu and start game
-            document.getElementById('multiplayerMenu').style.display = 'none';
-            document.getElementById('multiplayerGameUI').style.display = 'block';
-            document.getElementById('opponentName').textContent = opponentName;
+    // Set game mode
+    gameMode = 'vsmultiplayer';
+    isGameOver = false;
 
-            // Start the game
-            multiplayerGameStarted = true;
-            startGame();
+    // Initialize game state
+    initializeGameForMultiplayer();
 
-            // Emit to start the game on server
-            socket.emit('startGame', roomCode);
-        }, 2000);
-    });
+    showMessage(`Multiplayer game shuru! Aap ${myPlayerNumber} hain.`, 3000);
+}
 
-    socket.on('gameStarted', (data) => {
-        isMyTurn = (data.currentPlayer === socket.id);
-        updateTurnIndicator();
-        showFloatingText(isMyTurn ? '🎯 आपकी बारी!' : '⏳ Friend की बारी...', isMyTurn ? 'green' : 'orange');
-    });
+function initializeGameForMultiplayer() {
+    // Initialize all game variables similar to startGame() function
+    currentPlayer = myPlayerNumber;
+    isGameOver = false;
 
-    socket.on('opponentPlayedCard', (data) => {
-        console.log('Opponent played card:', data);
-        isMyTurn = (data.nextPlayer === socket.id);
-        updateTurnIndicator();
+    // Reset player stats
+    player1.ip = 100;
+    player1.tokens = 15;
+    player1.hand = [];
+    player1.bonuses = { damage: 0, heal: 0, draw: 0 };
 
-        // Show that opponent played
-        showFloatingText(`${opponentName} ने card खेला!`, 'blue');
+    player2.ip = 100;
+    player2.tokens = 15; 
+    player2.hand = [];
+    player2.bonuses = { damage: 0, heal: 0, draw: 0 };
 
-        // Trigger opponent's turn simulation (since we can't modify their game state directly)
-        // We'll just update the turn indicator and let the game continue
-    });
+    // Initialize deck
+    initializeDeck();
+    shuffleDeck();
 
-    socket.on('gameStateUpdate', (data) => {
-        console.log('Game state update:', data);
-        if (data.opponentIP !== undefined) {
-            document.getElementById('opponentIP').textContent = data.opponentIP;
-        }
-    });
+    // Draw initial cards
+    drawCards(player1, CARDSTODRAWPERTURN);
+    drawCards(player2, CARDSTODRAWPERTURN);
 
-    socket.on('playerDisconnected', (data) => {
-        showFloatingText(`${data.playerName} ने game छोड़ दिया!`, 'red');
-        setTimeout(() => {
-            if (confirm(`${data.playerName} disconnect हो गया। क्या आप game continue रखना चाहते हैं?`)) {
-                // Switch back to single player mode
-                isMultiplayer = false;
-                multiplayerGameStarted = false;
-                document.getElementById('multiplayerGameUI').style.display = 'none';
-                showFloatingText('Single player mode पर switch हो गए', 'yellow');
-            }
-        }, 1000);
-    });
+    // Set initial phase
+    currentPhase = 'draw';
+    playedCardsThisTurn = [];
 
-    socket.on('roomFull', () => {
-        alert('🚫 Room full है! कोई और room code try करें।');
-        closeMultiplayer();
+    // Update UI
+    updateGameUI();
+    updateTurnIndicator();
+
+    // Start first turn
+    if (isMyTurn) {
+        startDrawPhase();
+    } else {
+        showMessage("Opponent ka turn hai, wait karo...", 2000);
+    }
+}
+
+function handleOpponentAction(action) {
+    console.log('Opponent action received:', action);
+
+    switch(action.type) {
+        case 'PLAY_CARD':
+            handleOpponentPlayCard(action);
+            break;
+        case 'END_TURN':
+            handleOpponentEndTurn(action);
+            break;
+        case 'DRAW_CARDS':
+            handleOpponentDrawCards(action);
+            break;
+        case 'PHASE_CHANGE':
+            handleOpponentPhaseChange(action);
+            break;
+        case 'GAME_STATE_UPDATE':
+            updateGameStateFromOpponent(action);
+            break;
+        default:
+            console.log('Unknown opponent action:', action.type);
+    }
+}
+
+function handleOpponentPlayCard(action) {
+    const { card, playerType, targetPlayer } = action;
+    const opponent = playerType === 'player1' ? player1 : player2;
+    const target = targetPlayer === 'player1' ? player1 : player2;
+
+    // Execute card effect
+    if (card.effect) {
+        card.effect(opponent, target);
+    }
+
+    // Update UI
+    updateGameUI();
+
+    // Show message
+    showMessage(`Opponent ne ${card.name} khela!`, 2000);
+}
+
+function handleOpponentEndTurn(action) {
+    // Switch turns
+    currentPlayer = currentPlayer === 'player1' ? 'player2' : 'player1';
+    isMyTurn = (myPlayerNumber === currentPlayer);
+
+    // Reset phase
+    currentPhase = 'draw';
+    playedCardsThisTurn = [];
+
+    updateTurnIndicator();
+    updateGameUI();
+
+    if (isMyTurn) {
+        startDrawPhase();
+        showMessage("Aapka turn shuru!", 2000);
+    }
+}
+
+function handleOpponentDrawCards(action) {
+    const { playerType, count } = action;
+    const opponent = playerType === 'player1' ? player1 : player2;
+
+    // Add cards to opponent's hand (we don't know what cards they are)
+    for (let i = 0; i < count; i++) {
+        opponent.hand.push({ name: 'Hidden Card', isHidden: true });
+    }
+
+    updateGameUI();
+}
+
+function handleOpponentPhaseChange(action) {
+    currentPhase = action.phase;
+    updatePhaseUI();
+
+    showMessage(`Opponent ka ${action.phase} phase`, 1500);
+}
+
+function updateGameStateFromOpponent(action) {
+    // Update game state from opponent's data
+    const { gameState } = action;
+
+    if (gameState.player1) {
+        player1.ip = gameState.player1.ip;
+        player1.tokens = gameState.player1.tokens;
+    }
+
+    if (gameState.player2) {
+        player2.ip = gameState.player2.ip;
+        player2.tokens = gameState.player2.tokens;
+    }
+
+    updateGameUI();
+
+    // Check for game over
+    if (player1.ip <= 0 || player2.ip <= 0) {
+        handleGameOver();
+    }
+}
+
+function sendActionToOpponent(actionType, actionData) {
+    if (!isMultiplayerMode || !roomCode) return;
+
+    const action = {
+        type: actionType,
+        playerId: myPlayerId,
+        playerNumber: myPlayerNumber,
+        ...actionData
+    };
+
+    socket.emit('gameAction', {
+        roomCode: roomCode,
+        action: action,
+        playerId: myPlayerId
     });
 }
 
 function updateTurnIndicator() {
-    const turnIndicator = document.getElementById('turnIndicator');
-    if (turnIndicator) {
-        turnIndicator.textContent = isMyTurn ? '🎯 आपकी Turn' : `⏳ ${opponentName} की Turn`;
-        turnIndicator.style.background = isMyTurn ? 
-            'linear-gradient(135deg, #4CAF50, #45a049)' : 
-            'linear-gradient(135deg, #FF9800, #F57C00)';
+    const turnIndicator = document.getElementById('current-player-display') || 
+                         document.getElementById('turn-indicator');
 
-        if (isMyTurn) {
-            turnIndicator.style.animation = 'pulse 2s infinite';
-        } else {
-            turnIndicator.style.animation = 'none';
+    if (turnIndicator) {
+        if (isMultiplayerMode) {
+            turnIndicator.textContent = isMyTurn ? 'Aapka Turn' : 'Opponent ka Turn';
+            turnIndicator.style.color = isMyTurn ? '#10B981' : '#EF4444';
         }
     }
-}
 
-// Override original functions for multiplayer support
-const originalStartGame = window.startGame;
-window.startGame = function() {
-    if (isMultiplayer && !multiplayerGameStarted) {
-        return; // Wait for multiplayer game to be ready
-    }
-
-    // Call original startGame function
-    if (originalStartGame) {
-        originalStartGame.call(this);
-    }
-
-    if (isMultiplayer) {
-        showFloatingText('🎮 Multiplayer game शुरू!', 'green');
-    }
-};
-
-// Override card play function for multiplayer
-const originalHandleCardPlay = window.playCard;
-window.playCard = function(card, cardElement) {
-    if (isMultiplayer && !isMyTurn) {
-        showFloatingText('❌ अभी आपकी turn नहीं है!', 'red');
-        return false;
-    }
-
-    // Call original function
-    let result = true;
-    if (originalHandleCardPlay) {
-        result = originalHandleCardPlay.call(this, card, cardElement);
-    }
-
-    // If multiplayer and card was played successfully
-    if (isMultiplayer && result !== false && socket) {
-        // Emit card play to server
-        socket.emit('playCard', {
-            roomCode: roomCode,
-            cardData: {
-                name: card.name,
-                type: card.type,
-                effect: card.effect
-            }
-        });
-
-        // Update turn
-        isMyTurn = false;
-        updateTurnIndicator();
-
-        // Send updated IP if available
-        const playerIP = window.playerIP || window.currentPlayerIP || 100;
-        socket.emit('gameUpdate', {
-            roomCode: roomCode,
-            gameState: { opponentIP: playerIP }
-        });
-    }
-
-    return result;
-};
-
-// Multiplayer UI Functions
-function openMultiplayer() {
-    document.getElementById('multiplayerMenu').style.display = 'block';
-    document.getElementById('multiplayerSetup').style.display = 'block';
-    document.getElementById('waitingRoom').style.display = 'none';
-
-    // Pre-fill player name if available
-    const savedName = localStorage.getItem('playerName') || '';
-    document.getElementById('playerNameInput').value = savedName;
-
-    // Focus on name input
-    setTimeout(() => {
-        document.getElementById('playerNameInput').focus();
-    }, 100);
-}
-
-function closeMultiplayer() {
-    document.getElementById('multiplayerMenu').style.display = 'none';
-    document.getElementById('multiplayerGameUI').style.display = 'none';
-
-    if (socket) {
-        socket.disconnect();
-        socket = null;
-    }
-
-    isMultiplayer = false;
-    multiplayerGameStarted = false;
-    isMyTurn = false;
-    roomCode = '';
-    opponentName = '';
-}
-
-function startMultiplayer() {
-    const name = document.getElementById('playerNameInput').value.trim();
-    const room = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-
-    if (!name || name.length < 2) {
-        alert('कृपया अपना नाम लिखें (कम से कम 2 अक्षर)');
-        document.getElementById('playerNameInput').focus();
-        return;
-    }
-
-    if (!room || room.length < 4) {
-        alert('कृपया room code डालें (कम से कम 4 अक्षर)');
-        document.getElementById('roomCodeInput').focus();
-        return;
-    }
-
-    // Save name for future use
-    localStorage.setItem('playerName', name);
-
-    playerName = name;
-    roomCode = room;
-    isMultiplayer = true;
-
-    // Initialize connection
-    if (!socket) {
-        initMultiplayer();
-    }
-
-    // Join room
-    socket.emit('joinRoom', { roomCode: room, playerName: name });
-
-    // Show waiting screen
-    document.getElementById('multiplayerSetup').style.display = 'none';
-    document.getElementById('waitingRoom').style.display = 'block';
-    document.getElementById('roomCodeDisplay').textContent = room;
-}
-
-function generateRoomCode() {
-    const adjectives = ['SMART', 'COOL', 'FAST', 'MATH', 'SUPER'];
-    const numbers = Math.floor(Math.random() * 999) + 1;
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const code = adj + numbers;
-    document.getElementById('roomCodeInput').value = code;
-    document.getElementById('roomCodeInput').focus();
-}
-
-function copyRoomCode() {
-    const code = document.getElementById('roomCodeDisplay').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        showFloatingText('📋 Room code copy हो गया!', 'green');
-    }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = code;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showFloatingText('📋 Room code copy हो गया!', 'green');
+    // Disable/enable UI based on turn
+    const gameActions = document.querySelectorAll('.game-action-btn, .card');
+    gameActions.forEach(element => {
+        if (isMultiplayerMode) {
+            element.style.pointerEvents = isMyTurn ? 'auto' : 'none';
+            element.style.opacity = isMyTurn ? '1' : '0.5';
+        }
     });
 }
 
-// Add multiplayer button to existing menu
-window.addEventListener('DOMContentLoaded', function() {
-    // Find a good place to add multiplayer button
-    setTimeout(() => {
-        addMultiplayerButton();
-    }, 1000);
-});
+function syncGameState() {
+    if (!isMultiplayerMode || !roomCode) return;
 
-function addMultiplayerButton() {
-    // Try to find existing game controls or create a menu
-    let existingButton = document.querySelector('button');
-    if (existingButton) {
-        const multiplayerBtn = document.createElement('button');
-        multiplayerBtn.textContent = '🎮 Multiplayer';
-        multiplayerBtn.onclick = openMultiplayer;
-        multiplayerBtn.style.cssText = `
-            background: linear-gradient(135deg, #6a5acd, #483d8b);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 10px;
-            box-shadow: 0 4px 15px rgba(106, 90, 205, 0.3);
-            transition: transform 0.3s;
-        `;
+    const gameState = {
+        player1: {
+            ip: player1.ip,
+            tokens: player1.tokens,
+            handSize: player1.hand.length
+        },
+        player2: {
+            ip: player2.ip,
+            tokens: player2.tokens,
+            handSize: player2.hand.length
+        },
+        currentPhase: currentPhase,
+        currentPlayer: currentPlayer
+    };
 
-        multiplayerBtn.onmouseover = function() {
-            this.style.transform = 'translateY(-2px)';
-        };
-
-        multiplayerBtn.onmouseout = function() {
-            this.style.transform = 'translateY(0)';
-        };
-
-        // Add after the first button or at the beginning
-        existingButton.parentNode.insertBefore(multiplayerBtn, existingButton.nextSibling);
-    }
+    socket.emit('syncGameState', {
+        roomCode: roomCode,
+        gameState: gameState
+    });
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('multiplayerMenu').style.display !== 'none') {
-        closeMultiplayer();
+// Modify existing functions for multiplayer support
+const originalPlayCard = playCard;
+async function playCard(card, cardElem, playerType) {
+    if (isMultiplayerMode && !isMyTurn) {
+        showMessage("Aapka turn nahi hai!", 1500);
+        return;
     }
 
-    if (e.key === 'Enter' && document.getElementById('multiplayerSetup').style.display !== 'none') {
-        if (document.activeElement.id === 'playerNameInput') {
-            document.getElementById('roomCodeInput').focus();
-        } else if (document.activeElement.id === 'roomCodeInput') {
-            startMultiplayer();
+    if (isMultiplayerMode) {
+        // Send action to opponent first
+        sendActionToOpponent('PLAY_CARD', {
+            card: card,
+            playerType: playerType,
+            targetPlayer: playerType === 'player1' ? 'player2' : 'player1'
+        });
+
+        // Then execute locally
+        await originalPlayCard(card, cardElem, playerType);
+
+        // Sync game state
+        syncGameState();
+
+        // Check for game over
+        if (player1.ip <= 0 || player2.ip <= 0) {
+            handleMultiplayerGameOver();
         }
+    } else {
+        await originalPlayCard(card, cardElem, playerType);
     }
-});
-
-// CSS Animations
-const style = document.createElement('style');
-style.textContent = `
-@keyframes pulse {
-    0% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.05); }
-    100% { transform: translateX(-50%) scale(1); }
 }
 
-#multiplayerMenu input:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
-    transform: scale(1.02);
+function handleMultiplayerGameOver() {
+    const winner = player1.ip <= 0 ? 'player2' : 'player1';
+    const isWinner = (myPlayerNumber === winner);
+
+    isGameOver = true;
+
+    if (isWinner) {
+        showMessage("🎉 Aap jeet gaye! Congratulations! 🎉", 0);
+        playWinSound();
+    } else {
+        showMessage("😔 Aap haar gaye! Better luck next time! 😔", 0);
+        playLoseSound();
+    }
+
+    // Send game over to opponent
+    sendActionToOpponent('GAME_OVER', {
+        winner: winner,
+        finalState: {
+            player1: { ip: player1.ip, tokens: player1.tokens },
+            player2: { ip: player2.ip, tokens: player2.tokens }
+        }
+    });
+
+    // Show restart option
+    setTimeout(() => {
+        if (confirm("Game khatam! Kya main menu par wapas jana hai?")) {
+            backToMainMenu();
+        }
+    }, 3000);
 }
 
-#multiplayerMenu button:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+function backToMainMenu() {
+    // Reset everything
+    isMultiplayerMode = false;
+    roomCode = null;
+    myPlayerId = null;
+    myPlayerNumber = null;
+    isGameOver = false;
+
+    // Hide game UI and show main menu
+    document.getElementById('game-ui').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'block';
+    document.getElementById('game-mode-select').style.display = 'block';
 }
 
-#turnIndicator {
-    transition: all 0.3s ease;
-}
 
-.multiplayer-active {
-    border: 2px solid #4CAF50 !important;
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
-}
-`;
-document.head.appendChild(style);
+    // Add multiplayer button to game mode selection
+    const gameModeSelect = document.getElementById('game-mode-select');
+    if (gameModeSelect && !document.getElementById('multiplayer-mode-btn')) {
+        const multiplayerBtn = document.createElement('button');
+        multiplayerBtn.id = 'multiplayer-mode-btn';
+        multiplayerBtn.className = 'game-button bg-purple-600 hover:bg-purple-700';
+        multiplayerBtn.textContent = '🌐 Online Multiplayer';
+        multiplayerBtn.style.marginTop = '20px';
 
-console.log('🎮 Multiplayer system initialized!');
+        multiplayerBtn.addEventListener('click', () => {
+            document.getElementById('game-mode-select').style.display = 'none';
+            document.getElementById('ai-difficulty-select').style.display = 'none';
+            document.getElementById('branch-select').style.display = 'none';
+            multiplayerMenu.style.display = 'block';
+        });
+
+        gameModeSelect.appendChild(multiplayerBtn);
+    }
+
 </script>
 </body>
 </html>
