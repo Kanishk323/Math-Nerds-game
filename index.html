@@ -6,6 +6,8 @@
     <title>Mathematical Card Battle Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
     <!-- Tone.js for audio -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
@@ -3194,78 +3196,26 @@ default:
         }
 
 
-        async function sendChatMessage(){
+        function sendChatMessage() {
             const chatInput = document.getElementById('chat-input');
             const userMessage = chatInput.value.trim();
             if (!userMessage) return;
 
-            addChatMessage(userMessage, 'user');
-            chatInput.value = '';
-            document.getElementById('send-chat-btn').disabled = true;
-            document.getElementById('chat-loading-indicator').style.display = 'block';
+            // This assumes 'socket' is initialized and available in this scope
+            // We get it from the DOMContentLoaded event listener
+            const socket = window.socket;
 
-            try {
-                const systemPrompt = `You are 'Math Bot', a super-intelligent, pro-level e-sports strategist and commentator for the card game 'Mathematical Card Battle'. Your analysis is sharp, insightful, and always focused on winning. You are enthusiastic and use a mix of Hindi and English (Hinglish).
-
-                Your Core Directives:
-                1.  **Analyze First:** Before answering, deeply analyze the provided '[CURRENT GAME STATE]' and cross-reference it with the '[GAME KNOWLEDGE BASE]'.
-                2.  **Give Actionable Strategy:** Don't just describe cards. Tell the player *what* to play, *why* it's a good move, and what combos to look for. Suggest specific card plays from their hand.
-                3.  **Think Ahead:** Suggest not just the current turn's best move, but also how to set up for future turns.
-                4.  **Be Context-Aware:** Your advice must change based on the player's IP, tokens, and opponent's state. If the player's IP is low, prioritize survival. If tokens are high, suggest powerful combos.
-                5.  **Maintain Persona:** Be the ultimate hype-man and strategic genius. Phrases like "Okay, let's break it down!", "Sahi move ye hoga...", "This is a high-IQ play!" are perfect.`;
-
-                const handCardNames = players.player1.hand.map(card => card.name).join(', ') || 'khali';
-                const gameKnowledge = getGameKnowledgeBase();
-
-                const contextPrompt = `
-                ${gameKnowledge}
-
-                ### CURRENT GAME STATE ###
-                - Your IP (Player 1): ${players.player1.ip.toFixed(2)}
-                - Opponent IP (Player 2): ${players.player2.ip.toFixed(2)}
-                - Your Tokens: ${players.player1.tokens}
-                - Your Math Branch: ${players.player1.selectedBranch}
-                - Your Current Angle (if Trigonometry): ${players.player1.angle}°
-                - Cards in Your Hand: [${handCardNames}]
-                - Opponent's Math Branch: ${players.player2.selectedBranch}
-                - Current Turn: ${currentTurn}
-
-                Based on all the knowledge and the current game state, give a pro-level strategic answer to the player's question.
-
-                ### PLAYER'S QUESTION ###
-                "${userMessage}"
-                `;
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-
-                const payload = {
-                    contents: [{ parts: [{ text: contextPrompt }] }],
-                    systemInstruction: {
-                        parts: [{ text: systemPrompt }]
-                    },
-                };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+            if (socket && socket.connected) {
+                socket.emit('chatMessage', {
+                    // roomCode: currentRoomCode, // Add room code when multiplayer is implemented
+                    message: userMessage,
+                    playerName: 'Player'
                 });
-
-                if (!response.ok) {
-                    throw new Error(`API call failed with status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                const botResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, meri calculations mein kuch error aa gaya hai. Phir se try karo!";
-                addChatMessage(botResponse, 'bot');
-
-            } catch (error) {
-                console.error('Chatbot error:', error);
-                addChatMessage('Sorry, main abhi aapke sawaal ka jawab nahi de pa raha hoon. Connection mein koi problem hai.', 'bot');
-            } finally {
-                document.getElementById('send-chat-btn').disabled = false;
-                document.getElementById('chat-loading-indicator').style.display = 'none';
+            } else {
+                addChatMessage("Server se connection nahi hai. Bot abhi offline hai.", 'bot');
             }
+
+            chatInput.value = '';
         }
 
         function toggleSetupVisibility() {
@@ -3289,6 +3239,14 @@ default:
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            window.socket = io();
+
+            // Listen for chat messages from the server
+            window.socket.on('chatMessage', (data) => {
+                const senderType = (data.playerName.toLowerCase() === 'math bot') ? 'bot' : (data.playerName === 'Player' ? 'user' : 'opponent');
+                addChatMessage(data.message, senderType);
+            });
+
             displayBranchEffects('player1');
             displayBranchEffects('player2');
             updateStatus();
