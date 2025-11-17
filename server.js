@@ -343,13 +343,16 @@ function getBotResponse(message) {
     if (lowerCaseMessage.includes('card type')) {
         return "Teen tarah ke cards hain: Number (direct IP changes), Action (mathematical transformations), and Theorem (powerful, game-changing effects).";
     }
+    if (lowerCaseMessage.includes('mere pass abhi kitne card hai')) {
+        return "Main aapke haath ke card nahi dekh sakta, lekin aap apne card screen par dekh sakte hain!";
+    }
 
     // Default response if no keyword is found
     if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi') || lowerCaseMessage.includes('namaste')) {
         return "Namaste! Main Math Bot hoon. Game ke baare mein kuch bhi pucho!";
     }
 
-    return null; // No response if no relevant keyword is found
+    return "Mujhe samajh nahi aaya. Kya aap कृपया ise doosre tareeke se poochh sakate hain? Main card ke naam, branch, ya 'niyam' jaise keywords ko samajhata hoon.";
 }
 
 // Health check endpoint
