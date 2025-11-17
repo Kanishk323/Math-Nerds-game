@@ -963,7 +963,7 @@
             <div id="chat-history-display"></div>
             <div id="chat-input-container">
                 <input type="text" id="chat-input" placeholder="Apna sawaal yahan type karo...">
-                <button id="send-chat-btn" onclick="sendChatMessage()">Send</button>
+                <button id="send-chat-btn">Send</button>
             </div>
             <div id="chat-loading-indicator" style="display: none;">Typing...</div>
         </div>
@@ -3201,13 +3201,12 @@ default:
             const userMessage = chatInput.value.trim();
             if (!userMessage) return;
 
-            // This assumes 'socket' is initialized and available in this scope
-            // We get it from the DOMContentLoaded event listener
+            addChatMessage(userMessage, 'user');
+
             const socket = window.socket;
 
             if (socket && socket.connected) {
                 socket.emit('chatMessage', {
-                    // roomCode: currentRoomCode, // Add room code when multiplayer is implemented
                     message: userMessage,
                     playerName: 'Player'
                 });
@@ -3243,9 +3242,13 @@ default:
 
             // Listen for chat messages from the server
             window.socket.on('chatMessage', (data) => {
-                const senderType = (data.playerName.toLowerCase() === 'math bot') ? 'bot' : (data.playerName === 'Player' ? 'user' : 'opponent');
-                addChatMessage(data.message, senderType);
+                const senderType = (data.playerName.toLowerCase() === 'math bot') ? 'bot' : 'opponent';
+                if (data.playerName !== 'Player') {
+                    addChatMessage(data.message, senderType);
+                }
             });
+
+            document.getElementById('send-chat-btn').addEventListener('click', sendChatMessage);
 
             displayBranchEffects('player1');
             displayBranchEffects('player2');
