@@ -1,3 +1,6 @@
 
 > maths-nerds-multiplayer@1.0.0 start
 > node server.js
+
+🎮 Maths Nerds Multiplayer Server running on port 3000
+🌐 Server ready to accept connections

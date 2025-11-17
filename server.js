@@ -252,25 +252,26 @@ io.on('connection', (socket) => {
     socket.on('chatMessage', (data) => {
         const { roomCode, message, playerName } = data;
 
-        if (rooms[roomCode]) {
-            // Player's message broadcast
-            io.to(roomCode).emit('chatMessage', {
-                message: message,
-                playerName: playerName,
-                timestamp: Date.now()
-            });
+        // For single player mode, broadcast to all. For multiplayer, to the room.
+        const target = roomCode && rooms[roomCode] ? io.to(roomCode) : io;
 
-            // Bot's response logic
-            const botResponse = getBotResponse(message);
-            if (botResponse) {
-                setTimeout(() => {
-                    io.to(roomCode).emit('chatMessage', {
-                        message: botResponse,
-                        playerName: 'Math Bot',
-                        timestamp: Date.now()
-                    });
-                }, 1000); // 1 second delay
-            }
+        // Player's message broadcast
+        target.emit('chatMessage', {
+            message: message,
+            playerName: playerName,
+            timestamp: Date.now()
+        });
+
+        // Bot's response logic
+        const botResponse = getBotResponse(message);
+        if (botResponse) {
+            setTimeout(() => {
+                target.emit('chatMessage', {
+                    message: botResponse,
+                    playerName: 'Math Bot',
+                    timestamp: Date.now()
+                });
+            }, 1000); // 1 second delay
         }
     });
 
