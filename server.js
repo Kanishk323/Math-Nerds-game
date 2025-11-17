@@ -319,33 +319,55 @@ io.on('connection', (socket) => {
 });
 
 function getBotResponse(message) {
-    const lowerCaseMessage = message.toLowerCase();
+    // Helper function to normalize strings for better matching
+    const normalize = (str) => str.toLowerCase()
+        .replace(/['".,\/#!$%\^&\*;:{}=\-_`~()?]/g, "") // remove punctuation
+        .replace(/\s+/g, ' ').trim(); // normalize whitespace
 
-    // Search for card names
+    const normalizedMessage = normalize(message);
+
+    // Search for card names using multiple search terms for robustness
     for (const card of allCards) {
-        if (lowerCaseMessage.includes(card.name.toLowerCase())) {
-            return `${card.name} (${card.type}): ${card.description} (Cost: ${card.cost})`;
+        const lowerCardName = card.name.toLowerCase();
+
+        const searchTerms = [
+            lowerCardName, // e.g., "derivative ($d/dx$)"
+            lowerCardName.split('(')[0].trim() // e.g., "derivative"
+        ];
+
+        const parenMatch = lowerCardName.match(/\((.*)\)/);
+        if (parenMatch && parenMatch[1]) {
+            // e.g., "$d/dx$" -> "d/dx"
+            searchTerms.push(parenMatch[1].replace(/\$/g, '').trim());
+        }
+
+        for (const term of searchTerms) {
+            const normalizedTerm = normalize(term);
+            if (normalizedTerm.length > 1 && normalizedMessage.includes(normalizedTerm)) {
+                return `${card.name} (${card.type}): ${card.description} (Cost: ${card.cost})`;
+            }
         }
     }
 
     // Search for branch names
     for (const branchName in branchEffects) {
-        if (lowerCaseMessage.includes(branchName.toLowerCase())) {
+        const normalizedBranchName = normalize(branchName);
+        if (normalizedMessage.includes(normalizedBranchName)) {
             const branch = branchEffects[branchName];
             return `${branchName} Branch Pros: ${branch.pros} Cons: ${branch.cons}`;
         }
     }
 
     // General keywords
-    if (lowerCaseMessage.includes('rule') || lowerCaseMessage.includes('नियम')) {
+    if (normalizedMessage.includes('rule') || normalizedMessage.includes('नियम')) {
         return "Game Objective: Apne opponent ke Intellectual Power (IP) ko 0 tak kam karo. Har turn mein cards draw karo, tokens use karke unhe play karo, aur strategy banao!";
     }
-    if (lowerCaseMessage.includes('card type')) {
+    if (normalizedMessage.includes('card type')) {
         return "Teen tarah ke cards hain: Number (direct IP changes), Action (mathematical transformations), and Theorem (powerful, game-changing effects).";
     }
 
     // Default response if no keyword is found
-    if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi') || lowerCaseMessage.includes('namaste')) {
+    if (normalizedMessage.includes('hello') || normalizedMessage.includes('hi') || normalizedMessage.includes('namaste')) {
         return "Namaste! Main Math Bot hoon. Game ke baare mein kuch bhi pucho!";
     }
 
