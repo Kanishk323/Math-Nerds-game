@@ -349,7 +349,7 @@ function getBotResponse(message) {
         return "Namaste! Main Math Bot hoon. Game ke baare mein kuch bhi pucho!";
     }
 
-    return null; // No response if no relevant keyword is found
+    return "Mujhe samajh nahi aaya. Aap card names, branch names (jaise Algebra, Geometry), ya keywords jaise 'rule' ya 'card type' ke baare mein pooch sakte hain.";
 }
 
 // Health check endpoint
