@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +13,10 @@ const io = socketIo(server, {
         methods: ["GET", "POST"]
     }
 });
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
 // Static files serve करने के लिए
 app.use(express.static(path.join(__dirname)));
@@ -249,7 +255,7 @@ io.on('connection', (socket) => {
     });
 
     // Chat messages के लिए
-    socket.on('chatMessage', (data) => {
+    socket.on('chatMessage', async (data) => {
         const { roomCode, message, playerName } = data;
 
         // For single player mode, broadcast to all. For multiplayer, to the room.
@@ -263,15 +269,22 @@ io.on('connection', (socket) => {
         });
 
         // Bot's response logic
-        const botResponse = getBotResponse(message);
-        if (botResponse) {
-            setTimeout(() => {
+        try {
+            const botResponse = await getBotResponse(message);
+            if (botResponse) {
                 target.emit('chatMessage', {
                     message: botResponse,
                     playerName: 'Math Bot',
                     timestamp: Date.now()
                 });
-            }, 1000); // 1 second delay
+            }
+        } catch (error) {
+            console.error("Error getting bot response:", error);
+            target.emit('chatMessage', {
+                message: "Sorry, I'm having trouble connecting to my brain right now. Please try again later.",
+                playerName: 'Math Bot',
+                timestamp: Date.now()
+            });
         }
     });
 
@@ -318,38 +331,33 @@ io.on('connection', (socket) => {
     });
 });
 
-function getBotResponse(message) {
-    const lowerCaseMessage = message.toLowerCase();
+async function getBotResponse(message) {
+    const knowledgeBase = `
+        You are Math Bot, an expert guide for the card game "Maths Nerds".
+        Your role is to answer player questions in a friendly, helpful, and concise manner.
+        **Crucially, you must match the depth of your answer to the user's question.** If a user asks a simple question (e.g., 'What does the Plus 5 card do?'), give a simple, direct answer. If they ask a complex or strategic question (e.g., 'What is the best strategy for the Calculus branch against a Geometry player?'), provide a more detailed, strategic explanation.
+        You must always respond in Hindi.
 
-    // Search for card names
-    for (const card of allCards) {
-        if (lowerCaseMessage.includes(card.name.toLowerCase())) {
-            return `${card.name} (${card.type}): ${card.description} (Cost: ${card.cost})`;
-        }
-    }
+        **Game Objective:** Reduce your opponent's Intellectual Power (IP) to 0.
 
-    // Search for branch names
-    for (const branchName in branchEffects) {
-        if (lowerCaseMessage.includes(branchName.toLowerCase())) {
-            const branch = branchEffects[branchName];
-            return `${branchName} Branch Pros: ${branch.pros} Cons: ${branch.cons}`;
-        }
-    }
+        **Math Branches:**
+        ${Object.entries(branchEffects).map(([name, data]) => `- ${name}: Pros: ${data.pros} Cons: ${data.cons}`).join('\n')}
 
-    // General keywords
-    if (lowerCaseMessage.includes('rule') || lowerCaseMessage.includes('नियम')) {
-        return "Game Objective: Apne opponent ke Intellectual Power (IP) ko 0 tak kam karo. Har turn mein cards draw karo, tokens use karke unhe play karo, aur strategy banao!";
-    }
-    if (lowerCaseMessage.includes('card type')) {
-        return "Teen tarah ke cards hain: Number (direct IP changes), Action (mathematical transformations), and Theorem (powerful, game-changing effects).";
-    }
+        **Card Details:**
+        ${allCards.map(card => `- ${card.name} (${card.type}, Cost: ${card.cost}): ${card.description}`).join('\n')}
+    `;
 
-    // Default response if no keyword is found
-    if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi') || lowerCaseMessage.includes('namaste')) {
-        return "Namaste! Main Math Bot hoon. Game ke baare mein kuch bhi pucho!";
-    }
+    try {
+        const prompt = `${knowledgeBase}\n\nA player asks: "${message}".\n\nYour response (in Hindi):`;
 
-    return "Mujhe samajh nahi aaya. Aap card names, branch names (jaise Algebra, Geometry), ya keywords jaise 'rule' ya 'card type' ke baare mein pooch sakte hain.";
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        return text;
+    } catch (error) {
+        console.error('Error generating content from Gemini:', error);
+        return "माफ़ कीजिए, मुझे इस समय सोचने में कठिनाई हो रही है। कृपया बाद में दोबारा प्रयास करें।";
+    }
 }
 
 // Health check endpoint
