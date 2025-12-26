@@ -1040,6 +1040,34 @@ function displayChatMessage(playerName, message, isBot) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
+function getGameStateForChat() {
+  if (typeof players === 'undefined') return null;
+
+  const simplifyPlayer = (p) => {
+    return {
+      branch: p.selectedBranch,
+      ip: parseFloat(p.ip.toFixed(2)),
+      tokens: p.tokens,
+      hand: p.hand.map(c => `${c.name} (Cost: ${c.cost})`),
+      angle: p.angle,
+      status: [
+        p.isIPImaginary ? 'Imaginary' : '',
+        p.isIPIrrational ? 'Irrational' : '',
+        p.doubleDamageNextTurn ? 'Double Dmg Next' : '',
+        p.blockDamage > 0 ? `Block ${p.blockDamage}` : ''
+      ].filter(Boolean).join(', ')
+    };
+  };
+
+  return {
+    turn: currentTurn,
+    phase: currentPhase,
+    activePlayer: currentPlayer,
+    me: simplifyPlayer(players.player1),
+    opponent: simplifyPlayer(players.player2)
+  };
+}
+
 function sendChatMessage() {
   const chatInput = document.getElementById('chat-input');
   if (!chatInput) return;
@@ -1057,7 +1085,8 @@ function sendChatMessage() {
   socket.emit('chatMessage', {
     message: message,
     playerName: 'Player 1',
-    roomCode: currentRoomCode
+    roomCode: currentRoomCode,
+    gameState: getGameStateForChat()
   });
 
   chatInput.value = '';

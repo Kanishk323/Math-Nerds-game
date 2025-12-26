@@ -240,6 +240,25 @@ function getBotResponse(message) {
 // ============================================
 // 🤖 GOOGLE GENERATIVE AI FUNCTION
 // ============================================
+
+function formatGameStateForAI(gameState) {
+  if (!gameState) return "";
+
+  const p1 = gameState.me;
+  const p2 = gameState.opponent;
+  const turnInfo = `Turn: ${gameState.turn}, Phase: ${gameState.phase}, Active: ${gameState.activePlayer}`;
+
+  return `
+  CURRENT GAME STATE:
+  ${turnInfo}
+  - YOU (Player 1, ${p1.branch}): IP=${p1.ip}, Tokens=${p1.tokens}, Angle=${p1.angle}°
+    Status: ${p1.status || 'Normal'}
+    Hand: ${p1.hand.join(', ')}
+  - OPPONENT (Player 2, ${p2.branch}): IP=${p2.ip}, Tokens=${p2.tokens}, Angle=${p2.angle}°
+    Status: ${p2.status || 'Normal'}
+  `;
+}
+
 async function getGeminiResponse(message, gameContext = "") {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -257,12 +276,15 @@ Player ka message: "${message}"
 
 Guidelines:
 ✅ Hinglish mein friendly aur helpful jawab do (simple Hindi + English)
-✅ Game context se relevant information use karo
-✅ Agar card, branch ya rule ka sawaal hai to short explanation do
-✅ General chat par bhi friendly reply do
-✅ ONLY GAME CONTENT, real-world stuff mat lao
-✅ Response 2-3 lines tak rakhna (concise hona)
-❌ External websites ya real-world unrelated stuff mat suggest karna
+✅ **TACTICAL ADVICE**: Agar "Current Game State" diya gaya hai, toh user ke **hand cards** aur **opponent ke IP/status** ko analyze karke best move suggest karo.
+   - Example: "Tere paas 'Square IP' hai, usse use kar ke apna IP badha le!"
+   - Example: "Opponent ka IP imaginary hai, 'Real Projection' use kar!"
+✅ Game context se relevant information use karo.
+✅ Agar card, branch ya rule ka sawaal hai to short explanation do.
+✅ General chat par bhi friendly reply do.
+✅ ONLY GAME CONTENT, real-world stuff mat lao.
+✅ Response 2-3 lines tak rakhna (concise hona).
+❌ External websites ya real-world unrelated stuff mat suggest karna.
 
 Jawab directly do, koi "Bot says:" jaise prefix mat lagana.`;
 
@@ -372,7 +394,7 @@ io.on('connection', (socket) => {
   // 🤖 HYBRID CHATBOT - LOCAL + GEMINI
   // ============================================
   socket.on('chatMessage', async (data) => {
-    const { roomCode, message, playerName } = data;
+    const { roomCode, message, playerName, gameState } = data;
     
     console.log(`💬 Chat from ${playerName}: "${message}"`);
     
@@ -390,13 +412,22 @@ io.on('connection', (socket) => {
     let botResponse = getBotResponse(message);
     
     // Step 2: If no local match or response is default, use Gemini AI
+    // If gameState is present, we prefer Gemini for context-aware advice
     const needsGemini = !botResponse || 
                         botResponse.includes("Mujhe samajh nahi aaya") ||
-                        botResponse.length < 20;
+                        botResponse.length < 20 ||
+                        (gameState && message.length > 5); // Use AI if we have game state and a real question
 
     if (needsGemini) {
       console.log(`🤖 Trying Gemini for: "${message}"`);
-      const gameKnowledge = getGameKnowledgeBase();
+      let gameKnowledge = getGameKnowledgeBase();
+
+      if (gameState) {
+        const formattedState = formatGameStateForAI(gameState);
+        console.log("🎮 Game Context for AI:\n", formattedState); // Debug log
+        gameKnowledge += formattedState;
+      }
+
       const geminiResponse = await getGeminiResponse(message, gameKnowledge);
       if (geminiResponse) {
         botResponse = geminiResponse;
