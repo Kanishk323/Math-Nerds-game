@@ -261,7 +261,7 @@ function formatGameStateForAI(gameState) {
 
 async function getGeminiResponse(message, gameContext = "") {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
     const prompt = `Tu ek smart in-game Math chatbot ho jo "Mathematical Card Battle Game - Maths Nerds" mein players ko help karta hai.
 

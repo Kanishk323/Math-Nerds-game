@@ -1044,12 +1044,13 @@ function getGameStateForChat() {
   if (typeof players === 'undefined') return null;
 
   const simplifyPlayer = (p) => {
+    if (!p) return null;
     return {
-      branch: p.selectedBranch,
-      ip: parseFloat(p.ip.toFixed(2)),
-      tokens: p.tokens,
-      hand: p.hand.map(c => `${c.name} (Cost: ${c.cost})`),
-      angle: p.angle,
+      branch: p.selectedBranch || 'Unknown',
+      ip: p.ip ? parseFloat(p.ip.toFixed(2)) : 0,
+      tokens: p.tokens || 0,
+      hand: (p.hand || []).map(c => `${c.name} (Cost: ${c.cost})`),
+      angle: p.angle || 45,
       status: [
         p.isIPImaginary ? 'Imaginary' : '',
         p.isIPIrrational ? 'Irrational' : '',
@@ -1060,11 +1061,11 @@ function getGameStateForChat() {
   };
 
   return {
-    turn: currentTurn,
-    phase: currentPhase,
+    turn: currentTurn || 0,
+    phase: currentPhase || 'waiting',
     activePlayer: currentPlayer,
-    me: simplifyPlayer(players.player1),
-    opponent: simplifyPlayer(players.player2)
+    me: simplifyPlayer(players.player1) || {},
+    opponent: simplifyPlayer(players.player2) || { status: 'Not Joined' }
   };
 }
 
