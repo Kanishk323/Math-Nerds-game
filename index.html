@@ -6,8 +6,6 @@
     <title>Mathematical Card Battle Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Socket.IO Client -->
-    <script src="/socket.io/socket.io.js"></script>
     <!-- Tone.js for audio -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
@@ -780,6 +778,8 @@
             }
         }
     </style>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -963,13 +963,129 @@
             <div id="chat-history-display"></div>
             <div id="chat-input-container">
                 <input type="text" id="chat-input" placeholder="Apna sawaal yahan type karo...">
-                <button id="send-chat-btn">Send</button>
+                <button id="send-chat-btn" onclick="sendChatMessage()">Send</button>
             </div>
             <div id="chat-loading-indicator" style="display: none;">Typing...</div>
         </div>
     </div>
 
     <script>
+
+// ============================================
+// SOCKET.IO & CHAT SYSTEM - INTEGRATED FIX
+// ============================================
+let socket = null;
+let currentRoomCode = null;
+
+function initializeSocket() {
+  console.log('🔄 Initializing Socket.io...');
+
+  if (typeof io === 'undefined') {
+    console.error('❌ Socket.io library not loaded!');
+    return;
+  }
+
+  socket = io();
+
+  socket.on('connect', () => {
+    console.log('✅ Socket.io Connected! ID:', socket.id);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('❌ Socket.io Disconnected');
+  });
+
+  socket.on('chatMessage', (data) => {
+    console.log('📬 Received chat message:', data);
+    displayChatMessage(data.playerName, data.message, data.isBot);
+  });
+
+  socket.on('error', (err) => {
+    console.error('🚨 Socket Error:', err);
+  });
+}
+
+function displayChatMessage(playerName, message, isBot) {
+  const chatHistory = document.getElementById('chat-history-display');
+  if (!chatHistory) {
+    console.error('❌ Chat history element not found!');
+    return;
+  }
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${isBot ? 'bot' : 'user'}`;
+  messageDiv.style.marginBottom = '10px';
+  messageDiv.style.padding = '10px';
+  messageDiv.style.borderRadius = '8px';
+  messageDiv.style.maxWidth = '80%';
+  messageDiv.style.wordWrap = 'break-word';
+
+  if (isBot) {
+    messageDiv.style.backgroundColor = '#e0f7fa';
+    messageDiv.style.textAlign = 'left';
+    messageDiv.style.marginRight = 'auto';
+    messageDiv.style.color = '#00695c';
+    messageDiv.style.borderLeft = '4px solid #00796b';
+    messageDiv.style.fontWeight = 'bold';
+  } else {
+    messageDiv.style.backgroundColor = '#c8e6c9';
+    messageDiv.style.textAlign = 'right';
+    messageDiv.style.marginLeft = 'auto';
+    messageDiv.style.color = '#1b5e20';
+    messageDiv.style.borderRight = '4px solid #2e7d32';
+  }
+
+  messageDiv.innerHTML = `<strong>${playerName}:</strong> ${message}`;
+  chatHistory.appendChild(messageDiv);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+function sendChatMessage() {
+  const chatInput = document.getElementById('chat-input');
+  if (!chatInput) return;
+
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  if (!socket || !socket.connected) {
+    alert('Server se connection nahi hai!');
+    return;
+  }
+
+  displayChatMessage('You', message, false);
+
+  socket.emit('chatMessage', {
+    message: message,
+    playerName: 'Player 1',
+    roomCode: currentRoomCode
+  });
+
+  chatInput.value = '';
+  chatInput.focus();
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  initializeSocket();
+
+  const sendChatBtn = document.getElementById('send-chat-btn');
+  if (sendChatBtn) {
+    sendChatBtn.addEventListener('click', sendChatMessage);
+  }
+
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+  }
+});
+
+// ============================================
+// END SOCKET.IO & CHAT SYSTEM
+// ============================================
+
+
         // Game State
         let gameMode = 'vs_ai'; // 'vs_ai' or 'vs_local_player'
         let aiDifficulty = 'medium'; // 'easy', 'medium', 'hard'
@@ -1059,6 +1175,8 @@
 
         // Chatbot state
         let chatHistory = [];
+        // The API key will be automatically provided by the environment.
+        const API_KEY = "AIzaSyB_wWYdPdcyJparBp-2_0EZyMCuaRgHYfA";
 
         // Double tap detection variables
         let lastTapTime = 0;
@@ -3194,25 +3312,78 @@ default:
         }
 
 
-        function sendChatMessage() {
+        async function sendChatMessage() {
             const chatInput = document.getElementById('chat-input');
             const userMessage = chatInput.value.trim();
             if (!userMessage) return;
 
             addChatMessage(userMessage, 'user');
-
-            const socket = window.socket;
-
-            if (socket && socket.connected) {
-                socket.emit('chatMessage', {
-                    message: userMessage,
-                    playerName: 'Player'
-                });
-            } else {
-                addChatMessage("Server se connection nahi hai. Bot abhi offline hai.", 'bot');
-            }
-
             chatInput.value = '';
+            document.getElementById('send-chat-btn').disabled = true;
+            document.getElementById('chat-loading-indicator').style.display = 'block';
+
+            try {
+                const systemPrompt = `You are 'Math Bot', a super-intelligent, pro-level e-sports strategist and commentator for the card game 'Mathematical Card Battle'. Your analysis is sharp, insightful, and always focused on winning. You are enthusiastic and use a mix of Hindi and English (Hinglish).
+
+                Your Core Directives:
+                1.  **Analyze First:** Before answering, deeply analyze the provided '[CURRENT GAME STATE]' and cross-reference it with the '[GAME KNOWLEDGE BASE]'.
+                2.  **Give Actionable Strategy:** Don't just describe cards. Tell the player *what* to play, *why* it's a good move, and what combos to look for. Suggest specific card plays from their hand.
+                3.  **Think Ahead:** Suggest not just the current turn's best move, but also how to set up for future turns.
+                4.  **Be Context-Aware:** Your advice must change based on the player's IP, tokens, and opponent's state. If the player's IP is low, prioritize survival. If tokens are high, suggest powerful combos.
+                5.  **Maintain Persona:** Be the ultimate hype-man and strategic genius. Phrases like "Okay, let's break it down!", "Sahi move ye hoga...", "This is a high-IQ play!" are perfect.`;
+
+                const handCardNames = players.player1.hand.map(card => card.name).join(', ') || 'khali';
+                const gameKnowledge = getGameKnowledgeBase();
+
+                const contextPrompt = `
+                ${gameKnowledge}
+
+                ### CURRENT GAME STATE ###
+                - Your IP (Player 1): ${players.player1.ip.toFixed(2)}
+                - Opponent IP (Player 2): ${players.player2.ip.toFixed(2)}
+                - Your Tokens: ${players.player1.tokens}
+                - Your Math Branch: ${players.player1.selectedBranch}
+                - Your Current Angle (if Trigonometry): ${players.player1.angle}°
+                - Cards in Your Hand: [${handCardNames}]
+                - Opponent's Math Branch: ${players.player2.selectedBranch}
+                - Current Turn: ${currentTurn}
+
+                Based on all the knowledge and the current game state, give a pro-level strategic answer to the player's question.
+
+                ### PLAYER'S QUESTION ###
+                "${userMessage}"
+                `;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: contextPrompt }] }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const botResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, meri calculations mein kuch error aa gaya hai. Phir se try karo!";
+                addChatMessage(botResponse, 'bot');
+
+            } catch (error) {
+                console.error('Chatbot error:', error);
+                addChatMessage('Sorry, main abhi aapke sawaal ka jawab nahi de pa raha hoon. Connection mein koi problem hai.', 'bot');
+            } finally {
+                document.getElementById('send-chat-btn').disabled = false;
+                document.getElementById('chat-loading-indicator').style.display = 'none';
+            }
         }
 
         function toggleSetupVisibility() {
@@ -3236,18 +3407,6 @@ default:
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            window.socket = io();
-
-            // Listen for chat messages from the server
-            window.socket.on('chatMessage', (data) => {
-                const senderType = (data.playerName.toLowerCase() === 'math bot') ? 'bot' : 'opponent';
-                if (data.playerName !== 'Player') {
-                    addChatMessage(data.message, senderType);
-                }
-            });
-
-            document.getElementById('send-chat-btn').addEventListener('click', sendChatMessage);
-
             displayBranchEffects('player1');
             displayBranchEffects('player2');
             updateStatus();
