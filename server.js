@@ -244,24 +244,24 @@ function getBotResponse(message) {
 function formatGameStateForAI(gameState) {
   if (!gameState) return "";
 
-  const p1 = gameState.me;
-  const p2 = gameState.opponent;
-  const turnInfo = `Turn: ${gameState.turn}, Phase: ${gameState.phase}, Active: ${gameState.activePlayer}`;
+  const p1 = gameState.me || {};
+  const p2 = gameState.opponent || {};
+  const turnInfo = `Turn: ${gameState.turn || 0}, Phase: ${gameState.phase || 'Unknown'}, Active: ${gameState.activePlayer || 'Unknown'}`;
 
   return `
   CURRENT GAME STATE:
   ${turnInfo}
-  - YOU (Player 1, ${p1.branch}): IP=${p1.ip}, Tokens=${p1.tokens}, Angle=${p1.angle}°
+  - YOU (Player 1, ${p1.branch || 'Unknown'}): IP=${p1.ip || 0}, Tokens=${p1.tokens || 0}, Angle=${p1.angle || 45}°
     Status: ${p1.status || 'Normal'}
-    Hand: ${p1.hand.join(', ')}
-  - OPPONENT (Player 2, ${p2.branch}): IP=${p2.ip}, Tokens=${p2.tokens}, Angle=${p2.angle}°
+    Hand: ${(p1.hand || []).join(', ')}
+  - OPPONENT (Player 2, ${p2.branch || 'Unknown'}): IP=${p2.ip || 0}, Tokens=${p2.tokens || 0}, Angle=${p2.angle || 45}°
     Status: ${p2.status || 'Normal'}
   `;
 }
 
 async function getGeminiResponse(message, gameContext = "") {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Tu ek smart in-game Math chatbot ho jo "Mathematical Card Battle Game - Maths Nerds" mein players ko help karta hai.
 
