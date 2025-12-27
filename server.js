@@ -272,9 +272,10 @@ function formatGameStateForAI(gameState) {
   `;
 }
 
-async function getGeminiResponse(message, gameContext = "") {
+async function getGeminiResponse(message, gameContext = "", modelType = "fast") {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const modelName = modelType === 'pro' ? "gemini-1.5-pro" : "gemini-1.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const systemPrompt = `You are 'Math Bot', a super-intelligent, pro-level e-sports strategist and commentator for the card game 'Mathematical Card Battle'. Your analysis is sharp, insightful, and always focused on winning. You are enthusiastic and use a mix of Hindi and English (Hinglish).
 
@@ -403,9 +404,9 @@ io.on('connection', (socket) => {
   // 🤖 HYBRID CHATBOT - LOCAL + GEMINI
   // ============================================
   socket.on('chatMessage', async (data) => {
-    const { roomCode, message, playerName, gameState } = data;
+    const { roomCode, message, playerName, gameState, modelType } = data;
     
-    console.log(`💬 Chat from ${playerName}: "${message}"`);
+    console.log(`💬 Chat from ${playerName} (${modelType || 'fast'}): "${message}"`);
     
     const target = roomCode && rooms[roomCode] ? io.to(roomCode) : io;
     
@@ -437,7 +438,7 @@ io.on('connection', (socket) => {
         gameKnowledge += formattedState;
       }
 
-      const geminiResponse = await getGeminiResponse(message, gameKnowledge);
+      const geminiResponse = await getGeminiResponse(message, gameKnowledge, modelType);
       if (geminiResponse) {
         botResponse = geminiResponse;
       }

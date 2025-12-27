@@ -962,6 +962,10 @@
             <h2>Math Bot Chat</h2>
             <div id="chat-history-display"></div>
             <div id="chat-input-container">
+                <select id="chat-model-select" style="padding: 10px; border: 1px solid #a0aec0; border-radius: 8px; font-size: 0.9em; background-color: white; margin-right: 5px;">
+                    <option value="fast">Fast (Flash)</option>
+                    <option value="pro">Pro (Smart)</option>
+                </select>
                 <input type="text" id="chat-input" placeholder="Apna sawaal yahan type karo...">
                 <button id="send-chat-btn" onclick="sendChatMessage()">Send</button>
             </div>
@@ -1070,9 +1074,12 @@ function getGameStateForChat() {
 
 function sendChatMessage() {
   const chatInput = document.getElementById('chat-input');
+  const modelSelect = document.getElementById('chat-model-select');
   if (!chatInput) return;
 
   const message = chatInput.value.trim();
+  const modelType = modelSelect ? modelSelect.value : 'fast';
+
   if (!message) return;
 
   if (!socket || !socket.connected) {
@@ -1086,7 +1093,8 @@ function sendChatMessage() {
     message: message,
     playerName: 'Player 1',
     roomCode: currentRoomCode,
-    gameState: getGameStateForChat()
+    gameState: getGameStateForChat(),
+    modelType: modelType
   });
 
   chatInput.value = '';
