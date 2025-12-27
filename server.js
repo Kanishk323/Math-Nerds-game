@@ -155,6 +155,7 @@ const getGameKnowledgeBase = () => {
         knowledge += `  - Pros: ${data.pros}\n`;
         knowledge += `  - Cons: ${data.cons}\n`;
         let strategicFit = '';
+        // TOKEN FIX: Updated strategic fit for Number Theory
         if (name === 'Algebra') strategicFit = 'Good for early aggression with buffed Number cards.';
         if (name === 'Geometry') strategicFit = 'Excellent for defensive, survival-focused play.';
         if (name === 'Calculus') strategicFit = 'Strong for control strategies using heal/damage over time effects.';
@@ -171,6 +172,7 @@ const getGameKnowledgeBase = () => {
         knowledge += `  - Type: ${card.type}, Cost: ${card.cost}\n`;
         knowledge += `  - Description: ${card.description}\n`;
         let strategicNote = '';
+        // Add strategic notes for key cards
         if (card.name === 'Derivative ($d/dx$)') strategicNote = "Ultimate finisher. Save it for when the opponent has high IP. Avoid using on low IP.";
         else if (card.name === 'Swap IPs') strategicNote = "Game-changer. Use it when your IP is critically low and the opponent's is high. A top-tier comeback card.";
         else if (card.name === 'Probability Boost') strategicNote = "Powerful setup card. Best used when you have a large hand and enough tokens to play multiple cards next turn.";
@@ -180,7 +182,7 @@ const getGameKnowledgeBase = () => {
         else if (card.name === 'Negative Cosec Avatar') strategicNote = "The strongest emergency recovery card for Trigonometry players. Use when your IP is negative. It multiplies your negative IP by a negative number, resulting in a positive IP. Set angle near 90° for a massive heal (e.g., at 85°, cosec is ~11.5).";
         else if (card.name === 'Monte Carlo') strategicNote = "Very reliable high-damage card for Probability players. Provides consistent damage unlike other luck-based cards.";
         else if (card.name === 'Shunya Hastak') strategicNote = "Extremely powerful control card. Use it when you suspect the opponent has a strong hand or key combo pieces saved up.";
-            else if (card.name === 'Natural Number Set') strategicNote = "A hard counter to 'Pi'. If the opponent makes their IP irrational, this card instantly sets it to 0. A crucial tech card.";
+         else if (card.name === 'Natural Number Set') strategicNote = "A hard counter to 'Pi'. If the opponent makes their IP irrational, this card instantly sets it to 0. A crucial tech card.";
 
         if(strategicNote) knowledge += `  - Strategic Note: ${strategicNote}\n`;
         knowledge += "\n";
@@ -244,51 +246,58 @@ function getBotResponse(message) {
 function formatGameStateForAI(gameState) {
   if (!gameState) return "";
 
-  const p1 = gameState.me;
-  const p2 = gameState.opponent;
-  const turnInfo = `Turn: ${gameState.turn}, Phase: ${gameState.phase}, Active: ${gameState.activePlayer}`;
+  // Safety checks in case data is missing
+  const p1 = gameState.me || {};
+  const p2 = gameState.opponent || {};
+  const turnInfo = `Turn: ${gameState.turn || '?'}, Phase: ${gameState.phase || '?'}, Active: ${gameState.activePlayer || '?'}`;
+  const handInfo = (p1.hand && Array.isArray(p1.hand)) ? p1.hand.join(', ') : 'Empty';
 
   return `
-  CURRENT GAME STATE:
+  ### CURRENT GAME STATE ###
   ${turnInfo}
-  - YOU (Player 1, ${p1.branch}): IP=${p1.ip}, Tokens=${p1.tokens}, Angle=${p1.angle}°
-    Status: ${p1.status || 'Normal'}
-    Hand: ${p1.hand.join(', ')}
-  - OPPONENT (Player 2, ${p2.branch}): IP=${p2.ip}, Tokens=${p2.tokens}, Angle=${p2.angle}°
-    Status: ${p2.status || 'Normal'}
+  - YOUR STATE (Player 1):
+    - Branch: ${p1.branch || 'Unknown'}
+    - IP: ${p1.ip || 0}
+    - Tokens: ${p1.tokens || 0}
+    - Angle: ${p1.angle || 45}°
+    - Status: ${p1.status || 'Normal'}
+    - Hand Cards: [${handInfo}]
+
+  - OPPONENT STATE (Player 2):
+    - Branch: ${p2.branch || 'Unknown'}
+    - IP: ${p2.ip || 0}
+    - Tokens: ${p2.tokens || 0}
+    - Angle: ${p2.angle || 45}°
+    - Status: ${p2.status || 'Normal'}
   `;
 }
 
 async function getGeminiResponse(message, gameContext = "") {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
-    const prompt = `Tu ek smart in-game Math chatbot ho jo "Mathematical Card Battle Game - Maths Nerds" mein players ko help karta hai.
+    const systemPrompt = `You are 'Math Bot', a super-intelligent, pro-level e-sports strategist and commentator for the card game 'Mathematical Card Battle'. Your analysis is sharp, insightful, and always focused on winning. You are enthusiastic and use a mix of Hindi and English (Hinglish).
 
-Game Context:
-- IP (Intellectual Power) = player ki health like value
-- Cards: Number (direct IP changes), Action (math transformations), Theorem (powerful effects)
-- Branches: Algebra, Geometry, Calculus, Number Theory, Probability, Complex Analysis, Trigonometry
-- Players apne opponent ke IP ko 0 tak kam karne ki koshish karte hain
+Your Core Directives:
+1.  **Analyze First:** Before answering, deeply analyze the provided '[CURRENT GAME STATE]' and cross-reference it with the '[GAME KNOWLEDGE BASE]'.
+2.  **Give Actionable Strategy:** Don't just describe cabrds. Tell the player *what* to play, *why* it's a good move, and what combos to look for. Suggest specific card plays from their hand.
+3.  **Think Ahead:** Suggest not just the current turn's best move, but also how to set up for future turns.
+4.  **Be Context-Aware:** Your advice must change based on the player's IP, tokens, and opponent's state. If the player's IP is low, prioritize survival. If tokens are high, suggest powerful combos.
+5.  **Maintain Persona:** Be the ultimate hype-man and strategic genius. Phrases like "Okay, let's break it down!", "Sahi move ye hoga...", "This is a high-IQ play!" are perfect.`;
+
+    const prompt = `
 ${gameContext}
 
-Player ka message: "${message}"
+Based on all the knowledge and the current game state, give a pro-level strategic answer to the player's question.
 
-Guidelines:
-✅ Hinglish mein friendly aur helpful jawab do (simple Hindi + English)
-✅ **TACTICAL ADVICE**: Agar "Current Game State" diya gaya hai, toh user ke **hand cards** aur **opponent ke IP/status** ko analyze karke best move suggest karo.
-   - Example: "Tere paas 'Square IP' hai, usse use kar ke apna IP badha le!"
-   - Example: "Opponent ka IP imaginary hai, 'Real Projection' use kar!"
-✅ Game context se relevant information use karo.
-✅ Agar card, branch ya rule ka sawaal hai to short explanation do.
-✅ General chat par bhi friendly reply do.
-✅ ONLY GAME CONTENT, real-world stuff mat lao.
-✅ Response 2-3 lines tak rakhna (concise hona).
-❌ External websites ya real-world unrelated stuff mat suggest karna.
+### PLAYER'S QUESTION ###
+"${message}"
+`;
 
-Jawab directly do, koi "Bot says:" jaise prefix mat lagana.`;
-
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+    });
     const text = result.response.text().trim();
     console.log(`✅ Gemini Response for "${message}": ${text.substring(0, 50)}...`);
     return text || null;
